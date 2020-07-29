@@ -42,10 +42,12 @@
     <Reference Include="VMS.TPS.Common.Model.API, Version=1.0.300.11, Culture=neutral, PublicKeyToken=305b81e210ec4b89, processorArchitecture=AMD64">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>C:\Program Files (x86)\Varian\RTM\15.6\esapi\API\VMS.TPS.Common.Model.API.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="VMS.TPS.Common.Model.Types, Version=1.0.300.11, Culture=neutral, PublicKeyToken=305b81e210ec4b89, processorArchitecture=AMD64">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>C:\Program Files (x86)\Varian\RTM\15.6\esapi\API\VMS.TPS.Common.Model.Types.dll</HintPath>
+      <Private>False</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>

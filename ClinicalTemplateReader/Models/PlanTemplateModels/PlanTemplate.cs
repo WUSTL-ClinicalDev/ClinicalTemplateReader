@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Serialization;
-using VMS.TPS.Common.Model.Types;
+﻿using System.Xml.Serialization;
 
 namespace ClinicalTemplateReader
 {
@@ -18,10 +12,9 @@ namespace ClinicalTemplateReader
         public double? DosePerFraction { get; set; }
         [XmlElement(IsNullable = true)]
         public int? FractionCount { get; set; }
-        //FieldAlignment ruels
+        //FieldAlignment rules
         public PrescriptionSite PrescriptionSite { get; set; }
-       //[XmlArrayItem("Field")]
-       public Field[] Fields { get; set; }
-
+        //[XmlArrayItem("Field")]
+        public Field[] Fields { get; set; }
     }
 }

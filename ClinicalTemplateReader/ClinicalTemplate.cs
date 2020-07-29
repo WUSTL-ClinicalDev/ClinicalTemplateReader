@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 using System.Xml.Serialization;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
@@ -12,118 +12,95 @@ namespace ClinicalTemplateReader
 {
     public class ClinicalTemplate
     {
-        private Application _app;
-        private string _imageServer;
+        #region Variables & Contants
 
-        public List<Protocol> ClinicalProtocols { get; set; }
-        public List<PlanTemplate> PlanTemplates { get; set; }
-        public List<ObjectiveTemplate> ObjectiveTemplates { get; set; }
+        /// <summary>
+        /// Path of the protocol templates
+        /// </summary>
+        private static readonly string TEMPLATES_PROTOCOL_PATH = @"va_data$\programdata\vision\templates\protocol";
+
+        /// <summary>
+        /// Path of the objective templates
+        /// </summary>
+        private static readonly string TEMPLATES_OBJECTIVE_PATH = @"va_data$\programdata\vision\templates\objective";
+
+        /// <summary>
+        /// Path of the plan templates
+        /// </summary>
+        private static readonly string TEMPLATES_PLAN_PATH = @"va_data$\programdata\vision\templates\plan";
+
+        /// <summary>
+        /// List of the clinical protocols
+        /// </summary>
+        public List<Protocol> ClinicalProtocols { get; private set; }
+
+        /// <summary>
+        /// List of the plan templates
+        /// </summary>
+        public List<PlanTemplate> PlanTemplates { get; private set; }
+
+        /// <summary>
+        /// List of the objective templates
+        /// </summary>
+        public List<ObjectiveTemplate> ObjectiveTemplates { get; private set; }
+
+        #endregion
+
+        #region Constructors
+
         /// <summary>
         /// Generates properties for clinical templates
         /// 1. ClinicalProtocols
         /// 2. ObjecitveTemplates
         /// 3. PlanTemplates
         /// </summary>
-        /// <param name="ImageServer"></param>
-        public ClinicalTemplate(string ImageServer, Application app)
+        /// <param name="imageServer">Address of the image server (e.g. hospImgSrv or 192.168.88.130)</param>
+        public ClinicalTemplate(string imageServer)
         {
-            _app = app;
-            _imageServer = ImageServer;
-            ClinicalProtocols = new List<Protocol>();
-            PlanTemplates = new List<PlanTemplate>();
-            ObjectiveTemplates = new List<ObjectiveTemplate>();
-            BuildClinicalProtocols();
-            BuildOptimizationTemplates();
-            BuildPlanTemplates();
-        }
-        private void BuildClinicalProtocols()
-        {
-            XmlSerializer serializer = new XmlSerializer(typeof(Protocol));
-            foreach (var file in Directory.GetFiles(Path.Combine("\\\\", _imageServer, "va_data$", "programdata", "vision", "templates", "protocol")).Where(x => Path.GetExtension(x.ToLower()).Contains("xml")))
-            {
-                using (StreamReader reader = new StreamReader(file))
-                {
-                    var temp_protocol = ((Protocol)serializer.Deserialize(reader));
-                    //Console.WriteLine($"{(temp_protocol.Phases.First().ObjectiveTemplate?.Type==null?"empty objective":$"{temp_protocol.Phases.First().ObjectiveTemplate.Type}")}");
-                    ClinicalProtocols.Add(temp_protocol);
-                }
-            }
+            ClinicalProtocols = DeserializeXmlFile<Protocol>(Path.Combine(@"\\", imageServer, TEMPLATES_PROTOCOL_PATH));
+            ObjectiveTemplates = DeserializeXmlFile<ObjectiveTemplate>(Path.Combine(@"\\", imageServer, TEMPLATES_OBJECTIVE_PATH));
+            PlanTemplates = DeserializeXmlFile<PlanTemplate>(Path.Combine(@"\\", imageServer, TEMPLATES_PLAN_PATH));
         }
 
-        private void BuildOptimizationTemplates()
-        {
-            ObjectiveTemplates.Clear();
-            XmlSerializer serializer = new XmlSerializer(typeof(ObjectiveTemplate));
-            foreach (var file in Directory.GetFiles(Path.Combine("\\\\", _imageServer, "va_data$", "programdata", "vision", "templates", "objective")).Where(x => Path.GetExtension(x.ToLower()).Contains("xml")))
-            {
-                using (StreamReader reader = new StreamReader(file))
-                {
-                    var temp_template = ((ObjectiveTemplate)serializer.Deserialize(reader));
-                    //if (temp_template.Preview.ApprovalStatus.Contains("Approved"))
-                    //{
-                    ObjectiveTemplates.Add(temp_template);
-                    //}
-                }
-            }
-        }
-        private void BuildPlanTemplates()
-        {
-            PlanTemplates.Clear();
-            XmlSerializer serializer = new XmlSerializer(typeof(PlanTemplate));
-            foreach (var file in Directory.GetFiles(Path.Combine("\\\\", _imageServer, "va_data$", "programdata", "vision", "templates", "plan")).Where(x => Path.GetExtension(x.ToLower()).Contains("xml")))
-            {
-                using (StreamReader reader = new StreamReader(file))
-                {
-                    var temp_template = ((PlanTemplate)serializer.Deserialize(reader));
-                    //if (temp_template.Preview.ApprovalStatus.Contains("Approved"))
-                    //{
-                    PlanTemplates.Add(temp_template);
-                    //}
-                }
-            }
-        }
+        #endregion        
+
+        #region Public APIs
+
         /// <summary>
         /// Gathers plan template approval statuses
         /// </summary>
-        /// <param name="includeClinicalProtocols">true if clinical protocols should be included in statistics.</param>
-        /// <returns></returns>
+        /// <param name="includeClinicalProtocols">True if clinical protocols should be included in statistics.</param>
+        /// <returns>List of plan template approves statuses</returns>
         public List<ApprovalStatistics> GetPlanTemplateApprovals(bool includeClinicalProtocols)
         {
-            List<ApprovalStatistics> approvals = new List<ApprovalStatistics>();
             var temp_templates = new List<PlanTemplate>(PlanTemplates);
-         
+
             if (includeClinicalProtocols)
             {
                 foreach (var protocol in ClinicalProtocols)
                 {
                     foreach (var phase in protocol.Phases)
                     {
-                        //converts clinical protocol into a plan template and copies the phase to the plan template.
+                        // Converts clinical protocol into a plan template and copies the phase to the plan template.
                         var temp_template = phase.PlanTemplate;
                         temp_template.Preview = protocol.Preview;
                         temp_templates.Add(temp_template);
                     }
                 }
             }
-            foreach (var protocolgroup in temp_templates.GroupBy(x => x.Preview.ApprovalStatus))
-            {
-                approvals.Add(new ApprovalStatistics
-                {
-                    ApprovalStatus = protocolgroup.Key,
-                    Count = protocolgroup.Count()
-                });
-            }
-            return approvals;
-        }
+
+            return GetApprovalStatistics<PlanTemplate>(temp_templates.GroupBy(x => x.Preview.ApprovalStatus));
+        }        
+
         /// <summary>
         /// Get approval statistics for objective template
         /// </summary>
-        /// <param name="includeClinicalProtocols">If true, includes objective templates in clinical protocls.</param>
-        /// <returns></returns>
+        /// <param name="includeClinicalProtocols">If true, includes objective templates in clinical protocols.</param>
+        /// <returns>List of objective template approves statuses</returns>
         public List<ApprovalStatistics> GetObjectiveTemplateApprovals(bool includeClinicalProtocols)
         {
-            List<ApprovalStatistics> approvals = new List<ApprovalStatistics>();
             var temp_templates = new List<ObjectiveTemplate>(ObjectiveTemplates);
+
             if (includeClinicalProtocols)
             {
                 foreach (var protocol in ClinicalProtocols)
@@ -132,126 +109,85 @@ namespace ClinicalTemplateReader
                     {
                         if (phase.ObjectiveTemplate != null)
                         {
-                            //converts clinical protocol into a objective template and copies the phase to the objective template.
+                            // Converts clinical protocol into a objective template and copies the phase to the objective template.
                             var temp_template = phase.ObjectiveTemplate;
                             temp_template.Preview = protocol.Preview;
                             temp_templates.Add(temp_template);
                         }
                         else
                         {
-                            Console.WriteLine($"phase objective null - {protocol.Preview.ID}");
+                            Debug.WriteLine($"Phase Objective null - {protocol.Preview.ID}");
                         }
                     }
                 }
             }
-            foreach (var protocolgroup in temp_templates.GroupBy(x => x.Preview.ApprovalStatus))
-            {
-                approvals.Add(new ApprovalStatistics
-                {
-                    ApprovalStatus = protocolgroup.Key,
-                    Count = protocolgroup.Count()
-                });
-            }
-            return approvals;
-        }
+
+            return GetApprovalStatistics<ObjectiveTemplate>(temp_templates.GroupBy(x => x.Preview.ApprovalStatus));
+        }        
+
         /// <summary>
-        /// Gets site statics on plan templates. Treatment site location information
+        /// Gets site statics on plan templates. Treatment site location information.
         /// </summary>
         /// <param name="approvedOnly">Only includes approved templates</param>
         /// <param name="includeClinicalProcotols">If true includes plan templates in clinical protocols.</param>
-        /// <returns></returns>
+        /// <returns>List of plan template site statistics</returns>
         public List<SiteStatistics> GetPlanTemplateSiteStatistics(bool approvedOnly, bool includeClinicalProcotols)
         {
-            List<SiteStatistics> sites = new List<SiteStatistics>();
             var temp_templates = new List<PlanTemplate>(PlanTemplates);
             if (approvedOnly)
             {
                 temp_templates = temp_templates.Where(x => x.Preview.ApprovalStatus.Contains("Approved")).ToList();
             }
+
             if (includeClinicalProcotols)
             {
-                if (approvedOnly)
+                var protocols = approvedOnly ? ClinicalProtocols : ClinicalProtocols.Where(x => x.Preview.ApprovalStatus.Contains("Approved"));
+                foreach (var protocol in protocols)
                 {
-                    foreach (var protocol in ClinicalProtocols.Where(x => x.Preview.ApprovalStatus.Contains("Approved")))
+                    foreach (var phase in protocol.Phases)
                     {
-                        foreach (var phase in protocol.Phases)
-                        {
-                            //converts clinical protocol into a plan template and copies the phase to the plan template.
-                            var temp_template = phase.PlanTemplate;
-                            temp_template.Preview = protocol.Preview;
-                            temp_templates.Add(temp_template);
-                        }
-                    }
-                }
-                else
-                {
-                    foreach (var protocol in ClinicalProtocols)
-                    {
-                        foreach (var phase in protocol.Phases)
-                        {
-                            var temp_template = phase.PlanTemplate;
-                            temp_template.Preview = protocol.Preview;
-                            temp_templates.Add(temp_template);
-                        }
+                        var temp_template = phase.PlanTemplate;
+                        temp_template.Preview = protocol.Preview;
+                        temp_templates.Add(temp_template);
                     }
                 }
             }
-            foreach (var protocolgroup in temp_templates.GroupBy(x => x.Preview.TreatmentSite))
-            {
-                sites.Add(new SiteStatistics
-                {
-                    Site = protocolgroup.Key,
-                    Count = protocolgroup.Count()
-                });
-            }
-            return sites;
+
+            return GetSiteStatistics<PlanTemplate>(temp_templates.GroupBy(x => x.Preview.TreatmentSite));
         }
+
+        /// <summary>
+        /// Gets site statics on objective templates. Treatment site location information.
+        /// </summary>
+        /// <param name="approvedOnly">Only includes approved templates</param>
+        /// <param name="includeClinicalProcotols">If true includes objective templates in clinical protocols.</param>
+        /// <returns>List of objective template site statistics</returns>
         public List<SiteStatistics> GetObjectiveTemplateSiteStatistics(bool approvedOnly, bool includeClinicalProtocols)
         {
-            List<SiteStatistics> sites = new List<SiteStatistics>();
             var temp_templates = new List<ObjectiveTemplate>(ObjectiveTemplates);
             if (approvedOnly)
             {
                 temp_templates = temp_templates.Where(x => x.Preview.ApprovalStatus.Contains("Approved")).ToList();
             }
+
             if (includeClinicalProtocols)
             {
-                if (approvedOnly)
+                var protocols = approvedOnly ? ClinicalProtocols : ClinicalProtocols.Where(x => x.Preview.ApprovalStatus.Contains("Approved"));
+                foreach (var protocol in protocols)
                 {
-                    foreach (var protocol in ClinicalProtocols.Where(x => x.Preview.ApprovalStatus.Contains("Approved")))
+                    foreach (var phase in protocol.Phases)
                     {
-                        foreach (var phase in protocol.Phases)
-                        {
-                            var temp_template = phase.ObjectiveTemplate;
-                            temp_template.Preview = protocol.Preview;
-                            temp_templates.Add(temp_template);
-                        }
-                    }
-                }
-                else
-                {
-                    foreach (var protocol in ClinicalProtocols)
-                    {
-                        foreach (var phase in protocol.Phases)
-                        {
-                            //converts clinical protocol into a objective template and copies the phase to the objective template.
-                            var temp_template = phase.ObjectiveTemplate;
-                            temp_template.Preview = protocol.Preview;
-                            temp_templates.Add(temp_template);
-                        }
+                        //converts clinical protocol into a objective template and copies the phase to the objective template.
+                        var temp_template = phase.ObjectiveTemplate;
+                        temp_template.Preview = protocol.Preview;
+                        temp_templates.Add(temp_template);
                     }
                 }
             }
-            foreach (var protocolgroup in temp_templates.GroupBy(x => x.Preview.TreatmentSite))
-            {
-                sites.Add(new SiteStatistics
-                {
-                    Site = protocolgroup.Key,
-                    Count = protocolgroup.Count()
-                });
-            }
-            return sites;
-        }
+
+            return GetSiteStatistics<ObjectiveTemplate>(temp_templates.GroupBy(x => x.Preview.TreatmentSite));
+        }        
+
         /// <summary>
         /// Performs the optimization for a given plan based on an optimization template
         /// </summary>
@@ -271,63 +207,78 @@ namespace ClinicalTemplateReader
                 //if not auto NTO take parameters from template.
                 if (optimizationTemplate.Helios.NormalTissueObjective.Use)
                 {
-                    plan.OptimizationSetup.AddNormalTissueObjective(optimizationTemplate.Helios.NormalTissueObjective.Priority,
-                        optimizationTemplate.Helios.NormalTissueObjective.DistanceFromTargetBorder,
-                        optimizationTemplate.Helios.NormalTissueObjective.StartDose,
-                        optimizationTemplate.Helios.NormalTissueObjective.EndDose,
-                        optimizationTemplate.Helios.NormalTissueObjective.FallOff);
+                    var normalTissueObjective = optimizationTemplate.Helios.NormalTissueObjective;
+                    plan.OptimizationSetup.AddNormalTissueObjective(
+                        normalTissueObjective.Priority,
+                        normalTissueObjective.DistanceFromTargetBorder,
+                        normalTissueObjective.StartDose,
+                        normalTissueObjective.EndDose,
+                        normalTissueObjective.FallOff);
                 }
             }
-            List<string> optimizer_string = new List<string>();
-            List<string> not_found_string = new List<string>();
+
+            List<string> optimizedObjectives = new List<string>();
+            List<string> notFoundOptimizationObjectives = new List<string>();
             foreach (var optimizationObjective in optimizationTemplate.ObjectivesAllStructures)
             {
-                if (plan.StructureSet.Structures.Any(x => x.Id == optimizationObjective.ID))
+                var structure = plan.StructureSet.Structures.FirstOrDefault(x => x.Id == optimizationObjective.ID);
+                if (structure != null)
                 {
-
-                    var structure = plan.StructureSet.Structures.FirstOrDefault(x => x.Id == optimizationObjective.ID);
-                    optimizer_string.Add(structure.Id);
+                    optimizedObjectives.Add(structure.Id);
                     foreach (var objective in optimizationObjective.StructureObjectives)
                     {
                         if (objective.Type == ObjectiveTypeEnum.Point)
                         {
-                            plan.OptimizationSetup.AddPointObjective(structure,
-                                objective.Operator == ObjectiveOperatorEnum.Upper ? OptimizationObjectiveOperator.Upper : OptimizationObjectiveOperator.Lower,
-                                doseUnit == DoseValue.DoseUnit.cGy ? new DoseValue(objective.Dose * 100.0, DoseValue.DoseUnit.cGy) : new DoseValue(objective.Dose, DoseValue.DoseUnit.Gy),
-                                (double)objective.Volume,
-                                (double)objective.Priority);
+                            plan.OptimizationSetup.AddPointObjective(
+                                structure,
+                                objective.Operator == ObjectiveOperatorEnum.Upper
+                                    ? OptimizationObjectiveOperator.Upper
+                                    : OptimizationObjectiveOperator.Lower,
+                                doseUnit == DoseValue.DoseUnit.cGy
+                                    ? new DoseValue(objective.Dose * 100.0, DoseValue.DoseUnit.cGy)
+                                    : new DoseValue(objective.Dose, DoseValue.DoseUnit.Gy),
+                                objective.Volume.Value,
+                                objective.Priority);
                         }
                         else if (objective.Type == ObjectiveTypeEnum.Mean)
                         {
                             plan.OptimizationSetup.AddMeanDoseObjective(structure,
-                               doseUnit == DoseValue.DoseUnit.cGy ? new DoseValue(objective.Dose * 100.0, DoseValue.DoseUnit.cGy) : new DoseValue(objective.Dose, DoseValue.DoseUnit.Gy),
-                                (double)objective.Priority
-                                );
+                               doseUnit == DoseValue.DoseUnit.cGy
+                                    ? new DoseValue(objective.Dose * 100.0, DoseValue.DoseUnit.cGy)
+                                    : new DoseValue(objective.Dose, DoseValue.DoseUnit.Gy),
+                               objective.Priority);
                         }
                         else if (objective.Type == ObjectiveTypeEnum.GEUDs)
                         {
-                            plan.OptimizationSetup.AddEUDObjective(structure,
-                                objective.Operator == ObjectiveOperatorEnum.Lower ? OptimizationObjectiveOperator.Lower :
-                                objective.Operator == ObjectiveOperatorEnum.Upper ? OptimizationObjectiveOperator.Upper :
-                                objective.Operator == ObjectiveOperatorEnum.Target ? OptimizationObjectiveOperator.Exact :
-                                OptimizationObjectiveOperator.None,
-                                doseUnit == DoseValue.DoseUnit.cGy ? new DoseValue(objective.Dose * 100.0, DoseValue.DoseUnit.cGy) : new DoseValue(objective.Dose, DoseValue.DoseUnit.Gy),
-                                (double)objective.ParameterA,
-                                (double)objective.Priority);
+                            plan.OptimizationSetup.AddEUDObjective(
+                                structure,
+                                objective.Operator == ObjectiveOperatorEnum.Lower
+                                    ? OptimizationObjectiveOperator.Lower
+                                    : objective.Operator == ObjectiveOperatorEnum.Upper
+                                        ? OptimizationObjectiveOperator.Upper
+                                        : objective.Operator == ObjectiveOperatorEnum.Target
+                                            ? OptimizationObjectiveOperator.Exact
+                                            : OptimizationObjectiveOperator.None,
+                                doseUnit == DoseValue.DoseUnit.cGy
+                                    ? new DoseValue(objective.Dose * 100.0, DoseValue.DoseUnit.cGy)
+                                    : new DoseValue(objective.Dose, DoseValue.DoseUnit.Gy),
+                                objective.ParameterA.Value,
+                                objective.Priority);
                         }
                         else
                         {
-                            optimizer_string.Add("ESAPI cannot add line objectives.");
+                            optimizedObjectives.Add($"ESAPI cannot add line objectives: {objective.Type}");
                         }
                     }
                 }
                 else
                 {
-                    not_found_string.Add(optimizationObjective.ID);
+                    notFoundOptimizationObjectives.Add(optimizationObjective.ID);
                 }
 
             }
-            if (plan.Beams.FirstOrDefault(x => !x.IsSetupField).GantryDirection != GantryDirection.None)
+
+            if (plan.Beams.FirstOrDefault(x => !x.IsSetupField)?.GantryDirection != GantryDirection.None)
             {
                 plan.OptimizeVMAT();
             }
@@ -336,11 +287,12 @@ namespace ClinicalTemplateReader
                 if (optimizationTemplate.Helios.MaxIterations != 0)
                 {
                     plan.Optimize(optimizationTemplate.Helios.MaxIterations,
-                        OptimizationOption.ContinueOptimizationWithPlanDoseAsIntermediateDose);
+                                  OptimizationOption.ContinueOptimizationWithPlanDoseAsIntermediateDose);
                 }
             }
-            return $"Structures Included in Optimization: {String.Join(", ", optimizer_string)}\nStructure not found on Structure Set for Optimiztion: {String.Join(", ", not_found_string)}";
 
+            return $"Structures Included in Optimization: {string.Join(", ", optimizedObjectives)}{Environment.NewLine}" +
+                   $"Structure not found on Structure Set for Optimiztion: {string.Join(", ", notFoundOptimizationObjectives)}";
         }
 
 
@@ -352,151 +304,151 @@ namespace ClinicalTemplateReader
         /// <param name="course">(optional) Course where plan should be created (null will generate a new course)</param>
         /// <param name="structureSet">StructureSet where plan should be created</param>
         /// <param name="planTemplate">Plan Template for plan creation</param>
-        /// <param name="TargetId">(optional) Id of target structure of (null to use template structure)</param>
-        /// <returns>The newly generated Plan setup</returns>
-        public ExternalPlanSetup GeneratePlanFromTemplate(Course course, StructureSet structureSet, PlanTemplate planTemplate, string TargetId)
+        /// <param name="targetId">(optional) Id of target structure of (null to use template structure)</param>
+        /// <returns>The newly generated Plan Setup</returns>
+        public ExternalPlanSetup GeneratePlanFromTemplate(Course course, StructureSet structureSet, PlanTemplate planTemplate, string targetId)
         {
-            ////generate plan from template. 
+            // Generate plan from template. 
             if (course == null)
             {
                 course = structureSet.Patient.AddCourse();
-                course.Id = "Auto" + (course.Patient.Courses.Any(x => x.Id.Contains("Auto")) ? (Convert.ToInt16(course.Patient.Courses.Where(x => x.Id.Contains("Auto")).OrderBy(x => x.Id).Last().Id.Last().ToString()) + 1).ToString() : "1");
+                course.Id = GenerateNewCourseId(structureSet.Patient.Courses);
             }
 
-            var CurrentPlan = course.AddExternalPlanSetup(structureSet);
+            var currentPlan = course.AddExternalPlanSetup(structureSet);
             int beamCount = 0;
             foreach (var field in planTemplate.Fields.Where(x => !x.Setup))
             {
-                //planning for arc fields
+                // Planning for arc fields
                 if (planTemplate.Preview.TreatmentStyle.ToUpper().Contains("ARC"))
                 {
-                    //first check if there is an MLC margin.
-                    //If there is an MLC margin, a field needs to be set up so that the MLC margin
-                    //can be set throughout the arc trajectory at a sampled control point spacing.
-                    //This is done with a conformal arc beam with CP sampling of 20 degrees. 
+                    // First check if there is an MLC margin.
+                    // If there is an MLC margin, a field needs to be set up so that the MLC margin
+                    // can be set throughout the arc trajectory at a sampled control point spacing.
+                    // This is done with a conformal arc beam with CP sampling of 20 degrees. 
                     if (field.MLCPlans.FirstOrDefault()?.MLCMargin?.Left != null)
                     {
-                        var beam = CurrentPlan.AddConformalArcBeam(
-                      new ExternalBeamMachineParameters(field.TreatmentUnit,
-                      GetEnergyFromBeamTemplate(field.Energy),
-                      field.DoseRate,
-                      field.Technique,
-                      field.PrimaryFluenceMode),
-                      field.Collimator.Rtn,
-                      20,
-                      field.Gantry.Rtn,
-                      (double)field.Gantry.StopRtn,
-                      GetGantryDirection(field.Gantry.RtnDirection),
-                      (double)field.TableRtn,
-                      GetIsocenterFromTemplate(field, CurrentPlan, TargetId));
+                        var beam = currentPlan.AddConformalArcBeam(
+                            new ExternalBeamMachineParameters(
+                                field.TreatmentUnit, 
+                                GetEnergyFromBeamTemplate(field.Energy),
+                                field.DoseRate, 
+                                field.Technique, 
+                                field.PrimaryFluenceMode), 
+                            field.Collimator.Rtn, 
+                            20, 
+                            field.Gantry.Rtn, 
+                            field.Gantry.StopRtn.Value, 
+                            GetGantryDirection(field.Gantry.RtnDirection), 
+                            field.TableRtn.Value, 
+                            GetIsocenterFromTemplate(field, currentPlan, targetId));
                         beam.Id = field.ID;
                         beam.FitMLCToStructure(new FitToStructureMargins(
-                            ((double)field.FieldMargin.Left),
-                            field.FieldMargin.Bottom == null ? (double)field.FieldMargin.Left : ((double)field.FieldMargin.Bottom),
-                            field.FieldMargin.Right == null ? (double)field.FieldMargin.Left : ((double)field.FieldMargin.Right),
-                            field.FieldMargin.Top == null ? (double)field.FieldMargin.Left : ((double)field.FieldMargin.Top)),
-                             CurrentPlan.StructureSet.Structures.FirstOrDefault(x => x.Id == TargetId) ??
-                             (CurrentPlan.StructureSet.Structures.FirstOrDefault(x => x.Id == field.Target.VolumeID) ??
-                             CurrentPlan.StructureSet.Structures.FirstOrDefault(x => x.StructureCodeInfos.FirstOrDefault().Code == field.Target.StructureCode.Code) ??
-                             CurrentPlan.StructureSet.Structures.FirstOrDefault(x => x.DicomType == "PTV")),
+                            field.FieldMargin.Left.Value,
+                            field.FieldMargin.Bottom ?? field.FieldMargin.Left.Value,
+                            field.FieldMargin.Right ?? field.FieldMargin.Left.Value,
+                            field.FieldMargin.Top ?? field.FieldMargin.Left.Value), 
+                            currentPlan.StructureSet.Structures.FirstOrDefault(x => x.Id == targetId)
+                                ?? currentPlan.StructureSet.Structures.FirstOrDefault(x => x.Id == field.Target.VolumeID)
+                                ?? currentPlan.StructureSet.Structures.FirstOrDefault(x => x.StructureCodeInfos.FirstOrDefault().Code == field.Target.StructureCode.Code)
+                                ?? currentPlan.StructureSet.Structures.FirstOrDefault(x => x.DicomType == "PTV"),
                             field.MLCPlans.FirstOrDefault().MLCMargin.OptimizeCollRtnFlag,
                             field.MLCPlans.FirstOrDefault().MLCMargin.JawFittingMode == "0" ? JawFitting.None : JawFitting.FitToRecommended,
                             GetLeafMeetingPoint(field.MLCPlans.FirstOrDefault().ContourMeetPoint),
                             GetClosedLeafMeetingPoint(field.MLCPlans.FirstOrDefault().ClosedMeetPoint));
-                        //check the field fit to see if the jaws are wider than 15cm. 
-                        if (beam.ControlPoints.FirstOrDefault().JawPositions.X2 - beam.ControlPoints.FirstOrDefault().JawPositions.X1 > 150)
+
+                        // Check the field fit to see if the jaws are wider than 15cm. 
+                        if (beam.ControlPoints.FirstOrDefault().JawPositions.X2 - beam.ControlPoints.FirstOrDefault().JawPositions.X1 > 150.0)
                         {
                             beamCount = FitJawToVMATLimit(beamCount, beam);
                         }
                     }
-                    else if (field.FieldMargin.Left != null)//margin could be set on the jaw rather than the MLC.
+                    // Margin could be set on the jaw rather than the MLC.
+                    else if (field.FieldMargin.Left.HasValue)
                     {
-                        var beam = CurrentPlan.AddConformalArcBeam(
-                        new ExternalBeamMachineParameters(field.TreatmentUnit,
-                        GetEnergyFromBeamTemplate(field.Energy),
-                        field.DoseRate,
-                        field.Technique,
-                        field.PrimaryFluenceMode),
-                        field.Collimator.Rtn,
-                        20,
-                        field.Gantry.Rtn,
-                        (double)field.Gantry.StopRtn,
-                        GetGantryDirection(field.Gantry.RtnDirection),
-                        (double)field.TableRtn,
-                        GetIsocenterFromTemplate(field, CurrentPlan, TargetId));
+                        var beam = currentPlan.AddConformalArcBeam(
+                            new ExternalBeamMachineParameters(
+                                field.TreatmentUnit, 
+                                GetEnergyFromBeamTemplate(field.Energy), 
+                                field.DoseRate, 
+                                field.Technique, 
+                                field.PrimaryFluenceMode),
+                            field.Collimator.Rtn, 
+                            20, 
+                            field.Gantry.Rtn, 
+                            field.Gantry.StopRtn.Value, 
+                            GetGantryDirection(field.Gantry.RtnDirection), 
+                            field.TableRtn.Value, 
+                            GetIsocenterFromTemplate(field, currentPlan, targetId));
                         beam.Id = field.ID;
-                        beam.FitCollimatorToStructure(new FitToStructureMargins(
-                            field.FieldMargin.Left == null ? 0.0 : ((double)field.FieldMargin.Left),
-                            field.FieldMargin.Bottom == null ? 0.0 : ((double)field.FieldMargin.Bottom),
-                            field.FieldMargin.Right == null ? 0.0 : ((double)field.FieldMargin.Right),
-                            field.FieldMargin.Top == null ? 0.0 : ((double)field.FieldMargin.Top)),
-                             CurrentPlan.StructureSet.Structures.FirstOrDefault(x => x.Id == TargetId) == null ?
-                             CurrentPlan.StructureSet.Structures.FirstOrDefault(x => x.Id == field.Target.VolumeID) == null ?
-                             CurrentPlan.StructureSet.Structures.FirstOrDefault(x => x.StructureCodeInfos.FirstOrDefault().Code == field.Target.StructureCode.Code) == null ?
-                            CurrentPlan.StructureSet.Structures.FirstOrDefault(x => x.DicomType == "PTV") :
-                            CurrentPlan.StructureSet.Structures.FirstOrDefault(x => x.StructureCodeInfos.FirstOrDefault().Code == field.Target.StructureCode.Code) :
-                            CurrentPlan.StructureSet.Structures.FirstOrDefault(x => x.Id == field.Target.VolumeID) :
-                            CurrentPlan.StructureSet.Structures.FirstOrDefault(x => x.Id == TargetId),
+                        beam.FitCollimatorToStructure(
+                            new FitToStructureMargins(field.FieldMargin.Left ?? 0.0,
+                                field.FieldMargin.Bottom ?? 0.0, 
+                                field.FieldMargin.Right ?? 0.0,
+                                field.FieldMargin.Top ?? 0.0),
+                            currentPlan.StructureSet.Structures.FirstOrDefault(x => x.Id == targetId)
+                                ?? currentPlan.StructureSet.Structures.FirstOrDefault(x => x.Id == field.Target.VolumeID)
+                                ?? currentPlan.StructureSet.Structures.FirstOrDefault(x => x.StructureCodeInfos.FirstOrDefault().Code == field.Target.StructureCode.Code) 
+                                ?? currentPlan.StructureSet.Structures.FirstOrDefault(x => x.DicomType == "PTV"),
                             field.Collimator.Mode.Contains("X"),
                             field.Collimator.Mode.Contains("Y"),
                             field.FieldMargin.OptimizeCollRtnFlag);
-                        if (beam.ControlPoints.FirstOrDefault().JawPositions.X2 - beam.ControlPoints.FirstOrDefault().JawPositions.X1 > 150)
+
+                        if (beam.ControlPoints.FirstOrDefault().JawPositions.X2 - beam.ControlPoints.FirstOrDefault().JawPositions.X1 > 150.0)
                         {
                             beamCount = FitJawToVMATLimit(beamCount, beam);
                         }
                     }
                     else
                     {
-                        //if no fitting, a simple arc beam can be used (only 2 control points in arc beam).
-                        var beam = CurrentPlan.AddArcBeam(
-                      new ExternalBeamMachineParameters(field.TreatmentUnit,
-                      GetEnergyFromBeamTemplate(field.Energy),
-                      field.DoseRate,
-                      field.Technique,
-                      field.PrimaryFluenceMode),
-                      new VRect<double>(field.Collimator.X1 * 10.0,
-                      field.Collimator.Y1 * 10.0,
-                      field.Collimator.X2 * 10.0,
-                      field.Collimator.Y2 * 10.0),
-                      field.Collimator.Rtn,
-                      field.Gantry.Rtn,
-                      (double)field.Gantry.StopRtn,
-                      GetGantryDirection(field.Gantry.RtnDirection),
-                      (double)field.TableRtn,
-                      GetIsocenterFromTemplate(field, CurrentPlan, TargetId));
+                        // If no fitting, a simple arc beam can be used (only 2 control points in arc beam).
+                        var beam = currentPlan.AddArcBeam(
+                            new ExternalBeamMachineParameters(
+                                field.TreatmentUnit,
+                                GetEnergyFromBeamTemplate(field.Energy), 
+                                field.DoseRate, 
+                                field.Technique, 
+                                field.PrimaryFluenceMode),
+                            new VRect<double>(field.Collimator.X1 * 10.0, field.Collimator.Y1 * 10.0, 
+                                              field.Collimator.X2 * 10.0, field.Collimator.Y2 * 10.0), 
+                            field.Collimator.Rtn, 
+                            field.Gantry.Rtn, 
+                            field.Gantry.StopRtn.Value, 
+                            GetGantryDirection(field.Gantry.RtnDirection), 
+                            field.TableRtn.Value, 
+                            GetIsocenterFromTemplate(field, currentPlan, targetId));
                         beam.Id = field.ID;
                     }
                 }
-                else if (planTemplate.Preview.TreatmentStyle.ToUpper().Contains("IMRT"))//IMRT settings.
+                //IMRT settings.
+                else if (planTemplate.Preview.TreatmentStyle.ToUpper().Contains("IMRT"))
                 {
-                    //Static beam can be added because IMRT optimization will generate the MLC and sequences. 
-                    var b = CurrentPlan.AddStaticBeam(
-                        new ExternalBeamMachineParameters(field.TreatmentUnit,
-                        GetEnergyFromBeamTemplate(field.Energy),
-                        field.DoseRate,
-                        field.Technique,
-                        field.PrimaryFluenceMode),
-                        new VRect<double>(field.Collimator.X1 * 10.0,
-                        field.Collimator.Y1 * 10.0,
-                        field.Collimator.X2 * 10.0,
-                        field.Collimator.Y2 * 10.0),
+                    // Static beam can be added because IMRT optimization will generate the MLC and sequences. 
+                    var b = currentPlan.AddStaticBeam(
+                        new ExternalBeamMachineParameters(
+                            field.TreatmentUnit, 
+                            GetEnergyFromBeamTemplate(field.Energy), 
+                            field.DoseRate, 
+                            field.Technique, 
+                            field.PrimaryFluenceMode),
+                        new VRect<double>(field.Collimator.X1 * 10.0, field.Collimator.Y1 * 10.0, 
+                                          field.Collimator.X2 * 10.0, field.Collimator.Y2 * 10.0),
                         field.Collimator.Rtn,
                         field.Gantry.Rtn,
-                        (double)field.TableRtn,
-                        GetIsocenterFromTemplate(field, CurrentPlan, TargetId));
+                        field.TableRtn.Value,
+                        GetIsocenterFromTemplate(field, currentPlan, targetId));
                     b.Id = field.ID;
                     if (field.FieldMargin.BEVMarginFlag)
                     {
-                        b.FitCollimatorToStructure(new FitToStructureMargins(
-                            field.FieldMargin.Left == null ? 0.0 : (double)field.FieldMargin.Left,
-                            field.FieldMargin.Bottom == null ? 0.0 : (double)field.FieldMargin.Bottom,
-                            field.FieldMargin.Right == null ? 0.0 : (double)field.FieldMargin.Right,
-                            field.FieldMargin.Top == null ? 0.0 : (double)field.FieldMargin.Top),
-                             CurrentPlan.StructureSet.Structures.FirstOrDefault(x => x.Id == TargetId) == null ?
-                             CurrentPlan.StructureSet.Structures.FirstOrDefault(x => x.Id == field.Target.VolumeID) == null ?
-                            CurrentPlan.StructureSet.Structures.FirstOrDefault(x => x.DicomType == "PTV") :
-                            CurrentPlan.StructureSet.Structures.FirstOrDefault(x => x.Id == field.Target.VolumeID) :
-                            CurrentPlan.StructureSet.Structures.FirstOrDefault(x => x.Id == TargetId),
+                        b.FitCollimatorToStructure(
+                            new FitToStructureMargins(
+                                field.FieldMargin.Left ?? 0.0, 
+                                field.FieldMargin.Bottom ?? 0.0, 
+                                field.FieldMargin.Right ?? 0.0, 
+                                field.FieldMargin.Top ?? 0.0),
+                            currentPlan.StructureSet.Structures.FirstOrDefault(x => x.Id == targetId)
+                                ?? currentPlan.StructureSet.Structures.FirstOrDefault(x => x.Id == field.Target.VolumeID)
+                                ?? currentPlan.StructureSet.Structures.FirstOrDefault(x => x.DicomType == "PTV"),
                             field.Collimator.Mode.Contains("X"),
                             field.Collimator.Mode.Contains("Y"),
                             field.FieldMargin.OptimizeCollRtnFlag);
@@ -504,39 +456,94 @@ namespace ClinicalTemplateReader
                 }
                 else if (planTemplate.Preview.TreatmentStyle.ToUpper().Contains("CONFROMAL"))
                 {
-                    throw new NotImplementedException();
+                    throw new NotImplementedException("Treatment style 'CONFROMAL' is not supported!");
                 }
                 else
                 {
-                    throw new ApplicationException("Could not determine beam type");
+                    throw new ApplicationException("Could not determine beam type!");
                 }
             }
-            //PlanResult = $"Generate Plan {CurrentPlan.Id} with the following fields:\nBeam Id\tGantry Angle\tTechnique\n{String.Join("\n", CurrentPlan.Beams.Select(x => new { s = $"{x.Id}\t{x.ControlPoints.First().GantryAngle}\t{x.Technique}" }).Select(x => x.s))}";
-            return CurrentPlan;
+
+            Debug.WriteLine($"Generate Plan {currentPlan.Id} with the following fields:{Environment.NewLine}Beam Id\tGantry Angle\tTechnique{Environment.NewLine}" +
+                            $"{string.Join($"{Environment.NewLine}", currentPlan.Beams.Select(x => new { s = $"{x.Id}\t{x.ControlPoints.First().GantryAngle}\t{x.Technique}" }).Select(x => x.s))}");
+            
+            return currentPlan;
         }
 
-        private static int FitJawToVMATLimit(int beamCount, Beam beam)
+        /// <summary>
+        /// Converts template Prescription class to an Rx for an ESAPI PlanSetup
+        /// </summary>
+        /// <param name="planTemplate"></param>
+        /// <param name="planSetup">Applies the Rx directly to this plan setup.</param>
+        /// <param name="doseUnit">Unit of dose (cGy or  Gy)</param>
+        public void SetRx(PlanTemplate planTemplate, PlanSetup planSetup, string doseUnit)
         {
-            //bring the first jaw in 10cm
-            //bring the second jaw in to make 150mm.
+            planSetup.SetPrescription(
+                planTemplate.FractionCount.Value,
+                new DoseValue(
+                    doseUnit == "cGy" ? planTemplate.DosePerFraction.Value * 100.0 : planTemplate.DosePerFraction.Value,
+                    doseUnit == "cGy" ? DoseValue.DoseUnit.cGy : DoseValue.DoseUnit.Gy),
+                planTemplate.PrescribedPercentage.Value);
+        }
+
+        #endregion
+
+        #region Helper methods for APIs
+
+        /// <summary>
+        /// Generate new Course ID (e.g. Auto1)
+        /// </summary>
+        /// <param name="courses">Existing courses</param>
+        /// <returns>New Course ID</returns>
+        private string GenerateNewCourseId(IEnumerable<Course> courses)
+        {            
+            int largestIndex = 0;
+            courses.Where(c => c.Id.Contains("Auto")).ToList().ForEach(c =>                
+            {
+                var number = Regex.Replace(c.Id, "^\\D+", string.Empty);
+                var index = int.Parse(number);
+                if(largestIndex < index) 
+                {
+                    largestIndex = index;
+                }
+            });
+
+            return $"Auto{++largestIndex}";
+        }
+
+        /// <summary>
+        /// Set Jaw Positions.
+        /// Rules:
+        /// * Bring the first jaw in 10 cm
+        /// * Bring the second jaw in to make 150 mm
+        /// </summary>
+        /// <param name="beamCount">Count of the beams.</param>
+        /// <param name="beam">Beam where the jaw positions has to be set</param>
+        /// <returns>Beam with updated jaw positions.</returns>
+        private int FitJawToVMATLimit(int beamCount, Beam beam)
+        {
+            // Bring the first jaw in 10cm
+            // Bring the second jaw in to make 150mm.
             var editables = beam.GetEditableParameters();
             double x1 = beam.ControlPoints.First().JawPositions.X1;
             double x2 = beam.ControlPoints.First().JawPositions.X2;
             double fsx = x2 - x1;
-            editables.SetJawPositions(new VRect<double>(
-                beamCount % 2 == 0 ? x1 + 10.0 : x1 + (fsx - 150) - 10.0,
-                beam.ControlPoints.First().JawPositions.Y1,
-                beamCount % 2 == 0 ? x2 - (fsx - 150) + 10.0 : x2 - 10.0,
-                beam.ControlPoints.First().JawPositions.Y2));
+            editables.SetJawPositions(
+                new VRect<double>(
+                    beamCount % 2 == 0 ? x1 + 10.0 : x1 + (fsx - 150.0) - 10.0, 
+                    beam.ControlPoints.First().JawPositions.Y1, 
+                    beamCount % 2 == 0 ? x2 - (fsx - 150.0) + 10.0 : x2 - 10.0, 
+                    beam.ControlPoints.First().JawPositions.Y2));
             beam.ApplyParameters(editables);
-            beamCount++;
-            return beamCount;
+
+            return ++beamCount;
         }
+
         /// <summary>
         /// Converts template closed leaf meeting point to ESAPI closed leaf meeting point.
         /// </summary>
         /// <param name="closedMeetPoint">Leaf meeting point as defined in the clinical template.</param>
-        /// <returns></returns>
+        /// <returns>Closed leaf meeting point</returns>
         private ClosedLeavesMeetingPoint GetClosedLeafMeetingPoint(string closedMeetPoint)
         {
             if (closedMeetPoint.Contains("Center"))
@@ -551,16 +558,15 @@ namespace ClinicalTemplateReader
             {
                 return ClosedLeavesMeetingPoint.ClosedLeavesMeetingPoint_BankTwo;
             }
-            else
-            {
-                return ClosedLeavesMeetingPoint.ClosedLeavesMeetingPoint_Center;
-            }
+
+            return ClosedLeavesMeetingPoint.ClosedLeavesMeetingPoint_Center;
         }
+
         /// <summary>
         /// Converts open leaf meeting point in template to Eclipse OpenLeavesMeetingPoint enum.
         /// </summary>
-        /// <param name="contourMeetingPoint"></param>
-        /// <returns></returns>
+        /// <param name="contourMeetingPoint">Cibtiyr neetubgo= oiubt as defined in the clinical template.</param>
+        /// <returns>Leaf meeting point</returns>
         private OpenLeavesMeetingPoint GetLeafMeetingPoint(string contourMeetingPoint)
         {
             if (contourMeetingPoint.Contains("Middle"))
@@ -575,80 +581,82 @@ namespace ClinicalTemplateReader
             {
                 return OpenLeavesMeetingPoint.OpenLeavesMeetingPoint_Outside;
             }
-            else
-            {
-                return OpenLeavesMeetingPoint.OpenLeavesMeetingPoint_Middle;
-            }
+
+            return OpenLeavesMeetingPoint.OpenLeavesMeetingPoint_Middle;
         }
+
         /// <summary>
         /// Converts templated isocenter to isocenter in ESAPI coordinates. 
         /// </summary>
         /// <param name="beam">Beam where the iscoenter will be placed</param>
         /// <param name="plan">plan with the beam</param>
-        /// <param name="TargetId">Target ID override. If this is set, the target is assumed to have this id.</param>
+        /// <param name="targetId">Target ID override. If this is set, the target is assumed to have this id.</param>
         /// <returns>VVector for isocenter position. </returns>
-        private VVector GetIsocenterFromTemplate(Field beam, ExternalPlanSetup plan, string TargetId)
+        private VVector GetIsocenterFromTemplate(Field beam, ExternalPlanSetup plan, string targetId)
         {
-            double x = Convert.ToDouble(beam.Isocenter.X);
-            double y = Convert.ToDouble(beam.Isocenter.Y);
-            double z = Convert.ToDouble(beam.Isocenter.Z);
-            //if beam is relative to field target.
+            double isoCenterX = beam.Isocenter.X;
+            double isoCenterY = beam.Isocenter.Y;
+            double isoCenterZ = beam.Isocenter.Z;
+
+            // If beam is relative to field target.
             if (beam.Isocenter.Placement == IscoenterPlacementEnum.AFTS || beam.Isocenter.Placement == IscoenterPlacementEnum.RFTS)
             {
                 Structure target = null;
-                //check for a structure with the ID TargetId first.
-                if (!String.IsNullOrEmpty(TargetId))
+                // Check for a structure with the ID TargetId first.
+                if (!string.IsNullOrEmpty(targetId))
                 {
-                    target = plan.StructureSet.Structures.FirstOrDefault(o => o.Id == TargetId);
+                    target = plan.StructureSet.Structures.FirstOrDefault(o => o.Id == targetId);
                 }
+
                 if (target == null)
                 {
-                    //check the template's target volume ID second.
+                    // Check the template's target volume ID second.
                     target = plan.StructureSet.Structures.FirstOrDefault(o => o.Id == beam.Target.VolumeID);
                     if (target == null)
                     {
-                        //check for any PTV third.
+                        // Check for any PTV third.
                         target = plan.StructureSet.Structures.FirstOrDefault(o => o.DicomType.Contains("PTV"));
-                        if (target == null) { throw new ApplicationException("Could not determine target"); }
+                        if (target == null) 
+                        { 
+                            throw new ApplicationException("Could not determine target!"); 
+                        }
                     }
                 }
-                var center = target.CenterPoint;
-                //AFTS is at field target center.
-                if (beam.Isocenter.Placement == IscoenterPlacementEnum.AFTS)
-                {
-                    return center;
-                }
-                else
-                {
-                    //RFTS is relative to field target center.
-                    return new VVector(center.x + x, center.y + y, center.z + z);
-                }
+
+                // AFTS is at field target center.
+                var targetCenterPoint = target.CenterPoint;
+                return beam.Isocenter.Placement == IscoenterPlacementEnum.AFTS 
+                    ? target.CenterPoint
+                    // RFTS is relative to field target center.
+                    : new VVector(targetCenterPoint.x + isoCenterX, targetCenterPoint.y + isoCenterY, targetCenterPoint.z + isoCenterZ);
             }
-            else if (beam.Isocenter.Placement == IscoenterPlacementEnum.AIO)//at image (user) origin
+            // At image (user) origin
+            else if (beam.Isocenter.Placement == IscoenterPlacementEnum.AIO) 
             {
                 return plan.StructureSet.Image.UserOrigin;
             }
-            else if (beam.Isocenter.Placement == IscoenterPlacementEnum.RIO)//relative to image (user) origin
+            // Relative to image (user) origin
+            else if (beam.Isocenter.Placement == IscoenterPlacementEnum.RIO) 
             {
-                var uo = plan.StructureSet.Image.UserOrigin;
-                return new VVector(uo.x + x, uo.y + y, uo.z + z);
+                var userOrigin = plan.StructureSet.Image.UserOrigin;
+                return new VVector(userOrigin.x + isoCenterX, userOrigin.y + isoCenterY, userOrigin.z + isoCenterZ);
             }
-            else if (beam.Isocenter.Placement == IscoenterPlacementEnum.AIC)//At image center.
+            // At image center.
+            else if (beam.Isocenter.Placement == IscoenterPlacementEnum.AIC)
             {
                 return plan.StructureSet.Image.Origin;
             }
-            else if (beam.Isocenter.Placement == IscoenterPlacementEnum.RIC)//Relative to image center.
+            // Relative to image center.
+            else if (beam.Isocenter.Placement == IscoenterPlacementEnum.RIC)
             {
-                var io = plan.StructureSet.Image.Origin;
-                return new VVector(io.x + x, io.y + y, io.z + z);
+                var origin = plan.StructureSet.Image.Origin;
+                return new VVector(origin.x + isoCenterX, origin.y + isoCenterY, origin.z + isoCenterZ);
             }
-            else
-            {
-                //the default position will be the user origin.
-                return plan.StructureSet.Image.UserOrigin;
 
-            }
+            // The default position will be the user origin.
+            return plan.StructureSet.Image.UserOrigin;
         }
+
         /// <summary>
         /// Converts template gantry direction to ESAPI gantry direction.
         /// </summary>
@@ -668,6 +676,7 @@ namespace ClinicalTemplateReader
                     return GantryDirection.None;
             }
         }
+
         /// <summary>
         /// Converts template energy to ESAPI energy
         /// </summary>
@@ -677,17 +686,63 @@ namespace ClinicalTemplateReader
         {
             return $"{Convert.ToInt32(energy.EnergyKV) / 1000:F0}{energy.Type}";
         }
+
         /// <summary>
-        /// Converts template Prescription class to an Rx for an ESAPI PlanSetup
+        /// Deserialize all xml files from the given directory.
         /// </summary>
-        /// <param name="planTemplate"></param>
-        /// <param name="planSetup">Applies the Rx directly to this plan setup.</param>
-        /// <param name="doseUnit"></param>
-        public void SetRx(PlanTemplate planTemplate, PlanSetup planSetup, string doseUnit)
+        /// <typeparam name="T">Type</typeparam>
+        /// <param name="path">Path of the directory.</param>
+        /// <returns>List of the deserialized objects.</returns>
+        private List<T> DeserializeXmlFile<T>(string path)
         {
-            planSetup.SetPrescription((int)planTemplate.FractionCount, new DoseValue(doseUnit == "cGy" ? (double)planTemplate.DosePerFraction * 100.0 : (double)planTemplate.DosePerFraction, (doseUnit == "cGy" ? DoseValue.DoseUnit.cGy : DoseValue.DoseUnit.Gy)), (double)planTemplate.PrescribedPercentage);
+            List<T> resultList = new List<T>();
+            XmlSerializer serializer = new XmlSerializer(typeof(T));
+            foreach (var file in Directory.EnumerateFiles(path, "*.xml"))
+            {
+                using (StreamReader reader = new StreamReader(file))
+                {
+                    var deserialized = ((T)serializer.Deserialize(reader));
+                    resultList.Add(deserialized);
+                }
+            }
+
+            return resultList;
         }
 
+        /// <summary>
+        /// Get approves statistic of the given enumeration.
+        /// </summary>
+        /// <typeparam name="T">Type</typeparam>
+        /// <param name="tempTemplates">Grouped list of T (key, count)</param>
+        /// <returns>List of T approves statuses</returns>
+        private List<ApprovalStatistics> GetApprovalStatistics<T>(IEnumerable<IGrouping<string, T>> tempTemplates)
+        {
+            List<ApprovalStatistics> approvals = new List<ApprovalStatistics>();
+            foreach (var protocolgroup in tempTemplates)
+            {
+                approvals.Add(new ApprovalStatistics(protocolgroup.Key, protocolgroup.Count()));
+            }
 
+            return approvals;
+        }
+
+        /// <summary>
+        /// Get site statistic of the given enumeration.
+        /// </summary>
+        /// <typeparam name="T">Type</typeparam>
+        /// <param name="tempTemplates">Grouped list of T (key, count)</param>
+        /// <returns>List of T site statistics</returns>
+        private List<SiteStatistics> GetSiteStatistics<T>(IEnumerable<IGrouping<string, T>> tempTemplates)
+        {
+            List<SiteStatistics> sites = new List<SiteStatistics>();
+            foreach (var protocolgroup in tempTemplates)
+            {
+                sites.Add(new SiteStatistics(protocolgroup.Key, protocolgroup.Count()));
+            }
+
+            return sites;
+        }
+
+        #endregion
     }
 }

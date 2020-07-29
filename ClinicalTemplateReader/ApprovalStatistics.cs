@@ -2,7 +2,13 @@
 {
     public class ApprovalStatistics
     {
-        public string ApprovalStatus { get; set; }
-        public int Count { get; set; }
+        public ApprovalStatistics(string approvalStatus, int count)
+        {
+            ApprovalStatus = approvalStatus;
+            Count = count;
+        }
+
+        public string ApprovalStatus { get; private set; }
+        public int Count { get; private set; }
     }
 }

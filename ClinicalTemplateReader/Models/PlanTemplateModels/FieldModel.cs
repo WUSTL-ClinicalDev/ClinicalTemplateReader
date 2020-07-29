@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Xml.Serialization;
+﻿using System.Xml.Serialization;
 
 namespace ClinicalTemplateReader
 {
@@ -36,6 +35,5 @@ namespace ClinicalTemplateReader
         [XmlElement("Isocenter")]
         public IsocenterModel Isocenter { get; set; }
         public MLCPlan[] MLCPlans { get; set; }
-
     }
 }

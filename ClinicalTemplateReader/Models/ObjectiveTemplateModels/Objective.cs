@@ -9,14 +9,14 @@ namespace ClinicalTemplateReader
     {
         public ObjectiveTypeEnum Type { get; set; }
         public ObjectiveOperatorEnum Operator { get; set; }
-        
+
         public double Dose { get; set; }
-       [XmlElement(IsNullable =true)]
+        [XmlElement(IsNullable = true)]
         public double? Volume { get; set; }
-        
+
         public double Priority { get; set; }
         [XmlElement(IsNullable = true)]
         public double? ParameterA { get; set; }
         public int Group { get; set; }
     }
-}   
+}

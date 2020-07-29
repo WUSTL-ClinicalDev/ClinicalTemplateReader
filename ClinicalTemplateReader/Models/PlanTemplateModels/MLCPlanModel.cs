@@ -1,5 +1,4 @@
 ﻿using System.Xml.Serialization;
-using VMS.TPS.Common.Model.Types;
 
 namespace ClinicalTemplateReader
 {

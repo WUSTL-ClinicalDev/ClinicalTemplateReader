@@ -4,6 +4,5 @@
     {
         public string Type { get; set; }
         public string EnergyKV { get; set; }
-
     }
 }

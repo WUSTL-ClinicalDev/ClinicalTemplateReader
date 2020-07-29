@@ -2,8 +2,13 @@
 {
     public class SiteStatistics
     {
-        public string Site { get; set; }
-        public int Count { get; set; }
+        public SiteStatistics(string site, int count)
+        {
+            Site = site;
+            Count = count;
+        }
 
+        public string Site { get; private set; }
+        public int Count { get; private set; }
     }
 }

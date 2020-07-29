@@ -2,10 +2,8 @@
 
 namespace ClinicalTemplateReader
 {
-    
     public class PreviewModel
     {
-
         [XmlAttribute]
         public string ID { get; set; }
         [XmlAttribute]

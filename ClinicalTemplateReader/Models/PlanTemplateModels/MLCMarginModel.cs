@@ -1,5 +1,4 @@
 ﻿using System.Xml.Serialization;
-using VMS.TPS.Common.Model.Types;
 
 namespace ClinicalTemplateReader
 {
@@ -12,7 +11,7 @@ namespace ClinicalTemplateReader
         [XmlAttribute]
         public bool BEVMarginFlag { get; set; }
         [XmlAttribute]
-        public string JawFittingMode{ get; set; }
+        public string JawFittingMode { get; set; }
         [XmlElement(IsNullable = true)]
         public double? Left { get; set; }
         [XmlElement(IsNullable = true)]

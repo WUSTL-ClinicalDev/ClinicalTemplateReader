@@ -18,6 +18,5 @@ namespace ClinicalTemplateReader
         public double? Top { get; set; }
         [XmlElement(IsNullable = true)]
         public double? Bottom { get; set; }
-
     }
 }
