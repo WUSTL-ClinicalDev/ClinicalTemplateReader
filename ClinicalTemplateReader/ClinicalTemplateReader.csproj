@@ -53,6 +53,7 @@
   <ItemGroup>
     <Compile Include="ApprovalStatistics.cs" />
     <Compile Include="ClinicalTemplate.cs" />
+    <Compile Include="DescriptionImages\test.cs" />
     <Compile Include="Models\ObjectiveTemplateModels\HeliosModel.cs" />
     <Compile Include="Models\ObjectiveTemplateModels\NormalTissueModel.cs" />
     <Compile Include="Models\ObjectiveTemplateModels\Objective.cs" />
@@ -79,8 +80,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SiteStatistics.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="DescriptionImages\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
