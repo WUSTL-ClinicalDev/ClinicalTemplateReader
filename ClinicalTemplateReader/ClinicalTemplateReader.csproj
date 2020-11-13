@@ -79,5 +79,8 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SiteStatistics.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="DescriptionImages\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
