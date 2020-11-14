@@ -12,7 +12,7 @@ Go to the Nuget Package Manager and find the **ClinicalTemplateReader** package.
 ## Review Template Statistics
 In the Execute Method post the following code 
 
-'''
+```
         static void Execute(Application app)
         {
             // TODO: Add your code here.
@@ -34,7 +34,7 @@ In the Execute Method post the following code
             }
             Console.ReadLine();
         }
-'''
+```
 
 Running this should give the following response in the console.
 
@@ -43,7 +43,7 @@ Running this should give the following response in the console.
 ## Selecting a plan template
 The following code will allow you to select a plan template.
 
-'''
+```
 //Generating a plan from template.
             var appr_templates = clinicalProtols.PlanTemplates.Where(x => x.Preview.ApprovalStatus.Contains("Approved")).ToList();
             for (int i = 0; i < appr_templates.Count(); i++)
@@ -59,7 +59,7 @@ The following code will allow you to select a plan template.
             Console.WriteLine($"Number of Fields: {plantemplate.Fields.Count()}");
             Console.WriteLine($"Plan Rx: {plantemplate.DosePerFraction} x {plantemplate.FractionCount}");
             Console.ReadLine();
-'''
+```
 
 The result:
 
@@ -68,7 +68,7 @@ The result:
 ## Generating a plan from a template.
 Finally, the following code will utilize the ClinicalTemplateReader API to generate an automated plan.
 
-'''
+```
  //Generate plan from template
             var _patient = app.OpenPatientById("PatientIDHere");
             var _structureSet = _patient.StructureSets.FirstOrDefault(x => x.Id == "ROI");
@@ -83,7 +83,7 @@ Finally, the following code will utilize the ClinicalTemplateReader API to gener
             app.SaveModifications();
             app.ClosePatient();
             Console.ReadLine();
-'''
+```
 
 The response from the console should be as follows. 
 
