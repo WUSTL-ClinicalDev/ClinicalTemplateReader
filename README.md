@@ -35,12 +35,14 @@ In the Execute Method post the following code
             Console.ReadLine();
         }
 '''
+
 Running this should give the following response in the console.
 
 ![Template Summary](https://github.com/WUSTL-ClinicalDev/ClinicalTemplateReader/blob/master/ClinicalTemplateReader/DescriptionImages/ApprovedTemplates.JPG)
 
 ## Selecting a plan template
 The following code will allow you to select a plan template.
+
 '''
 //Generating a plan from template.
             var appr_templates = clinicalProtols.PlanTemplates.Where(x => x.Preview.ApprovalStatus.Contains("Approved")).ToList();
@@ -58,11 +60,14 @@ The following code will allow you to select a plan template.
             Console.WriteLine($"Plan Rx: {plantemplate.DosePerFraction} x {plantemplate.FractionCount}");
             Console.ReadLine();
 '''
+
 The result:
+
 ![Select Template](https://github.com/WUSTL-ClinicalDev/ClinicalTemplateReader/blob/master/ClinicalTemplateReader/DescriptionImages/PickATemplate.JPG)
 
 ## Generating a plan from a template.
 Finally, the following code will utilize the ClinicalTemplateReader API to generate an automated plan.
+
 '''
  //Generate plan from template
             var _patient = app.OpenPatientById("PatientIDHere");
@@ -79,6 +84,7 @@ Finally, the following code will utilize the ClinicalTemplateReader API to gener
             app.ClosePatient();
             Console.ReadLine();
 '''
+
 The response from the console should be as follows. 
 
 ![PlanResponse](https://github.com/WUSTL-ClinicalDev/ClinicalTemplateReader/blob/master/ClinicalTemplateReader/DescriptionImages/NewPlanGenerated.JPG)
