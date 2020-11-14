@@ -87,9 +87,9 @@ Finally, the following code will utilize the ClinicalTemplateReader API to gener
 
 The response from the console should be as follows. 
 
-![PlanResponse](https://github.com/WUSTL-ClinicalDev/ClinicalTemplateReader/blob/master/ClinicalTemplateReader/DescriptionImages/NewPlanGenerated.JPG)
+![PlanResponse](https://github.com/WUSTL-ClinicalDev/ClinicalTemplateReader/blob/master/ClinicalTemplateReader/DescriptionImages/PlanGenerated.JPG)
 
 After refreshing the patient in Eclipse, you should see a new course, plan, and fields generated on the patient.
 
-![NewPlan](https://github.com/WUSTL-ClinicalDev/ClinicalTemplateReader/blob/master/ClinicalTemplateReader/DescriptionImages/PlanGenerated.JPG)
+![NewPlan](https://github.com/WUSTL-ClinicalDev/ClinicalTemplateReader/blob/master/ClinicalTemplateReader/DescriptionImages/NewPlanGenerated.JPG)
 
