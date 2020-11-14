@@ -5,10 +5,10 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("ClinicalTemplateReader")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("ESAPI Clinical Template Reader")]
+[assembly: AssemblyDescription("Allows for the generation of treatment plan based on Eclipse clinical templates")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("Washington University in St. Louis")]
 [assembly: AssemblyProduct("ClinicalTemplateReader")]
 [assembly: AssemblyCopyright("Copyright ©  2020")]
 [assembly: AssemblyTrademark("")]
