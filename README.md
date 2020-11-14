@@ -5,7 +5,7 @@ Start by generated a Stand-alone executable with the Eclipse Script Wizard
 ![Script Wizard](https://github.com/WUSTL-ClinicalDev/ClinicalTemplateReader/blob/master/ClinicalTemplateReader/DescriptionImages/ScriptWizard.JPG)
 
 ## Save your solution!
-Change your target framework to .NET 4.5.2.
+Change your target framework to **.NET 4.5.2.**
 Go to the Nuget Package Manager and find the **ClinicalTemplateReader** package. You may find this by searching ESAPI. 
 
 ![Nuget](https://github.com/WUSTL-ClinicalDev/ClinicalTemplateReader/blob/master/ClinicalTemplateReader/DescriptionImages/NugetPackage.JPG)
