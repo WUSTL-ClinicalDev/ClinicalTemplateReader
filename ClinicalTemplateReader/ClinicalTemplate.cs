@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ClinicalTemplateReader.Models;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -289,6 +290,11 @@ namespace ClinicalTemplateReader
                     plan.Optimize(optimizationTemplate.Helios.MaxIterations,
                                   OptimizationOption.ContinueOptimizationWithPlanDoseAsIntermediateDose);
                 }
+                else
+                {
+                    //optimize with default settings.
+                    plan.Optimize();
+                }
             }
 
             return $"Structures Included in Optimization: {string.Join(", ", optimizedObjectives)}{Environment.NewLine}" +
@@ -484,6 +490,11 @@ namespace ClinicalTemplateReader
                     doseUnit == "cGy" ? planTemplate.DosePerFraction.Value * 100.0 : planTemplate.DosePerFraction.Value,
                     doseUnit == "cGy" ? DoseValue.DoseUnit.cGy : DoseValue.DoseUnit.Gy),
                 planTemplate.PrescribedPercentage.Value);
+        }
+
+        public List<DoseMetricModel> CompareProtocolDoseMetrics(PlanningItem plan, ClinicalTemplate template)
+        {
+            throw new NotImplementedException();
         }
 
         #endregion

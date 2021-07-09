@@ -8,5 +8,6 @@ namespace ClinicalTemplateReader
         public string ID { get; set; }
         public PlanTemplate PlanTemplate { get; set; }
         public ObjectiveTemplate ObjectiveTemplate { get; set; }
+        public Prescription Prescription { get; set; }
     }
 }
