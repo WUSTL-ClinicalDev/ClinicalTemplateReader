@@ -787,6 +787,7 @@ namespace ClinicalTemplateReader
                 if (!plan.StructureSet.Structures.Any(x => x.Id == measureItem.ID))
                 {
                     doseMetric.ResultText = "Structure Not Found";
+                    doseMetric.Pass = PassResultEnum.NA;
                     return doseMetric;
                 }
                 doseMetric.InputUnit = measureItem.Type == TypeEnum.DoseAtAbsoluteVolume ? ResultUnitEnum.cc : ResultUnitEnum.PercentVolume;
@@ -830,6 +831,7 @@ namespace ClinicalTemplateReader
                 if (!plan.StructureSet.Structures.Any(x => x.Id == measureItem.ID))
                 {
                     doseMetric.ResultText = "Structure Not Found";
+                    doseMetric.Pass = PassResultEnum.NA;
                     return doseMetric;
                 }
                 doseMetric.InputUnit = measureItem.Type == TypeEnum.VolumeAtAbsoluteDose ? ResultUnitEnum.Gy : ResultUnitEnum.PercentDose;
@@ -867,6 +869,7 @@ namespace ClinicalTemplateReader
             else
             {
                 doseMetric.ResultText = "Conformity Index and Gradient Measure not supported in this version.";
+                doseMetric.Pass = PassResultEnum.NA;
             }
             return doseMetric;
 
@@ -894,6 +897,7 @@ namespace ClinicalTemplateReader
             if (!plan.StructureSet.Structures.Any(x => x.Id == item.ID))
             {
                 doseMetric.ResultText = "Structure Not Found";
+                doseMetric.Pass = PassResultEnum.NA;
                 return doseMetric;
             }
             else
@@ -966,6 +970,7 @@ namespace ClinicalTemplateReader
                 else
                 {
                     doseMetric.ResultText = "Reference Points Isodose lines and depths not supported in this version";
+                    doseMetric.Pass = PassResultEnum.NA;
                 }
                 return doseMetric;
             }
