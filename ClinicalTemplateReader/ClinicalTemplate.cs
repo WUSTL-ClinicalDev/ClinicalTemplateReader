@@ -822,7 +822,7 @@ namespace ClinicalTemplateReader
                         doseMetric.Pass = measureItem.Value == null ? PassResultEnum.NA : doseMetric.ResultValue > doseMetric.TargetValue ? PassResultEnum.Pass : PassResultEnum.Fail;
                         break;
                 }
-                doseMetric.ResultText = $"{doseMetric.StructureId} D{doseMetric.InputValue}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] = {doseMetric.ResultValue:F2} {doseMetric.ResultUnit}";
+                doseMetric.ResultText = $"{doseMetric.StructureId} D{doseMetric.InputValue}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] = {doseMetric.ResultValue:F2} {ConvertUnitToString(doseMetric.ResultUnit)}";
 
             }
             else if (measureItem.Type == TypeEnum.VolumeAtAbsoluteDose || measureItem.Type == TypeEnum.VolumeAtRelativeDose)
@@ -863,7 +863,7 @@ namespace ClinicalTemplateReader
                         doseMetric.Pass = measureItem.Value == null ? PassResultEnum.NA : doseMetric.ResultValue > doseMetric.TargetValue ? PassResultEnum.Pass : PassResultEnum.Fail;
                         break;
                 }
-                doseMetric.ResultText = $"{doseMetric.StructureId} V{doseMetric.InputValue}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] = {doseMetric.ResultValue:F2} {doseMetric.ResultUnit}";
+                doseMetric.ResultText = $"{doseMetric.StructureId} V{doseMetric.InputValue}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] = {doseMetric.ResultValue:F2} {ConvertUnitToString(doseMetric.ResultUnit)}";
 
             }
             else
