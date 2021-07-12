@@ -7,6 +7,8 @@ Start by generated a Stand-alone executable with the Eclipse Script Wizard
 ## Save your solution!
 Change your target framework to **.NET 4.5.2.**
 Go to the Nuget Package Manager and find the **ClinicalTemplateReader** package. You may find this by searching ESAPI. 
+* For Version 15.6, make sure to get version **1.0.0.3**
+* For Version 16.0, make sure to get version **2.0.0.1**
 
 ![Nuget](ClinicalTemplateReader/DescriptionImages/NugetPackage.JPG)
 
@@ -123,3 +125,35 @@ The response from the console should be as follows.
 After refreshing the patient in Eclipse, you should see a new course, plan, and fields generated on the patient.
 
 ![NewPlan](ClinicalTemplateReader/DescriptionImages/NewPlanGenerated.JPG)
+
+## Read Plan Quality Metrics from Clinical Protocols
+A new feature available in Version 1.0.0.3 is the ability to leverage the plan quality metrics in a clinical protocol to evaluate the plan. Below is the code to select a clinical protocol, and based on that clinical protocol determine the pass/fail of each clinical plan.
+This does not require that you first build the plan with the ClinicalTemplateReader, but rather can be used as a stand-alone feature for getting plan goals.
+**NOTE: This works for both plans and plan sums, so now you can build clinical protocols with goals for an overall plansum and get the objective results!**
+```csharp
+    var reader = new ClinicalTemplate("Varian Image Server");
+    Console.WriteLine("Please select a clinical protocol:");
+    int cp_num = 0;
+    Console.WriteLine("Approval Statuses");
+    Console.WriteLine($"{String.Join("\n",reader.ClinicalProtocols.Select(x=>x.Preview.ApprovalStatus).Distinct())}");
+    var clinicalProtocols = reader.ClinicalProtocols.Where(x => x.Preview.ApprovalStatus == "Approved");
+    foreach (var cps in clinicalProtocols)
+    {
+        Console.WriteLine($"[{cp_num}]. {cps.Preview.ID} - {cps.Preview.TreatmentSite}: {cps.Preview.LastModified}");
+        cp_num++;
+    }
+    int cp_selection = Convert.ToInt32(Console.ReadLine());
+    var clinicalprotocol = clinicalProtocols.ElementAt(cp_selection);
+    //open patient, course and plan.
+    var patient = app.OpenPatientById("PatientId");//patient id here
+    var course = patient.Courses.FirstOrDefault(x => x.Id == "CourseId");//course id here
+    var plan = course.PlanSetups.FirstOrDefault(x => x.Id == "PlanId");//plan id here
+    //This is the method that compares the planning item to the clinical protocol.
+    var metrics = reader.CompareProtocolDoseMetrics(plan, clinicalprotocol);
+    foreach(var doseMetric in metrics)
+    {
+        Console.WriteLine($"{doseMetric.MetricText}\n\tResult: ({doseMetric.Pass}) {doseMetric.ResultText}");
+    }
+```
+The final result should look something like this.
+![NewPlan](ClinicalTemplateReader/DescriptionImages/DoseMetricResult.JPG)
