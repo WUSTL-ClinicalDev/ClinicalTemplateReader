@@ -157,4 +157,4 @@ This does not require that you first build the plan with the ClinicalTemplateRea
 ```
 The final result should look something like this.
 
-![NewPlan](ClinicalTemplateReader/DescriptionImages/DoseMetricResult.JPG)
+![DoseMetricResults](ClinicalTemplateReader/DescriptionImages/DoseMetricResult.JPG)
