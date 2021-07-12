@@ -1,4 +1,5 @@
 ﻿using ClinicalTemplateReader.Models;
+using ClinicalTemplateReader.Models.Internals;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -91,7 +92,7 @@ namespace ClinicalTemplateReader
             }
 
             return GetApprovalStatistics<PlanTemplate>(temp_templates.GroupBy(x => x.Preview.ApprovalStatus));
-        }        
+        }
 
         /// <summary>
         /// Get approval statistics for objective template
@@ -124,7 +125,7 @@ namespace ClinicalTemplateReader
             }
 
             return GetApprovalStatistics<ObjectiveTemplate>(temp_templates.GroupBy(x => x.Preview.ApprovalStatus));
-        }        
+        }
 
         /// <summary>
         /// Gets site statics on plan templates. Treatment site location information.
@@ -187,7 +188,7 @@ namespace ClinicalTemplateReader
             }
 
             return GetSiteStatistics<ObjectiveTemplate>(temp_templates.GroupBy(x => x.Preview.TreatmentSite));
-        }        
+        }
 
         /// <summary>
         /// Performs the optimization for a given plan based on an optimization template
@@ -336,24 +337,24 @@ namespace ClinicalTemplateReader
                     {
                         var beam = currentPlan.AddConformalArcBeam(
                             new ExternalBeamMachineParameters(
-                                field.TreatmentUnit, 
+                                field.TreatmentUnit,
                                 GetEnergyFromBeamTemplate(field.Energy),
-                                field.DoseRate, 
-                                field.Technique, 
-                                field.PrimaryFluenceMode), 
-                            field.Collimator.Rtn, 
-                            20, 
-                            field.Gantry.Rtn, 
-                            field.Gantry.StopRtn.Value, 
-                            GetGantryDirection(field.Gantry.RtnDirection), 
-                            field.TableRtn.Value, 
+                                field.DoseRate,
+                                field.Technique,
+                                field.PrimaryFluenceMode),
+                            field.Collimator.Rtn,
+                            20,
+                            field.Gantry.Rtn,
+                            field.Gantry.StopRtn.Value,
+                            GetGantryDirection(field.Gantry.RtnDirection),
+                            field.TableRtn.Value,
                             GetIsocenterFromTemplate(field, currentPlan, targetId));
                         beam.Id = field.ID;
                         beam.FitMLCToStructure(new FitToStructureMargins(
                             field.FieldMargin.Left.Value,
                             field.FieldMargin.Bottom ?? field.FieldMargin.Left.Value,
                             field.FieldMargin.Right ?? field.FieldMargin.Left.Value,
-                            field.FieldMargin.Top ?? field.FieldMargin.Left.Value), 
+                            field.FieldMargin.Top ?? field.FieldMargin.Left.Value),
                             currentPlan.StructureSet.Structures.FirstOrDefault(x => x.Id == targetId)
                                 ?? currentPlan.StructureSet.Structures.FirstOrDefault(x => x.Id == field.Target.VolumeID)
                                 ?? currentPlan.StructureSet.Structures.FirstOrDefault(x => x.StructureCodeInfos.FirstOrDefault().Code == field.Target.StructureCode.Code)
@@ -374,27 +375,27 @@ namespace ClinicalTemplateReader
                     {
                         var beam = currentPlan.AddConformalArcBeam(
                             new ExternalBeamMachineParameters(
-                                field.TreatmentUnit, 
-                                GetEnergyFromBeamTemplate(field.Energy), 
-                                field.DoseRate, 
-                                field.Technique, 
+                                field.TreatmentUnit,
+                                GetEnergyFromBeamTemplate(field.Energy),
+                                field.DoseRate,
+                                field.Technique,
                                 field.PrimaryFluenceMode),
-                            field.Collimator.Rtn, 
-                            20, 
-                            field.Gantry.Rtn, 
-                            field.Gantry.StopRtn.Value, 
-                            GetGantryDirection(field.Gantry.RtnDirection), 
-                            field.TableRtn.Value, 
+                            field.Collimator.Rtn,
+                            20,
+                            field.Gantry.Rtn,
+                            field.Gantry.StopRtn.Value,
+                            GetGantryDirection(field.Gantry.RtnDirection),
+                            field.TableRtn.Value,
                             GetIsocenterFromTemplate(field, currentPlan, targetId));
                         beam.Id = field.ID;
                         beam.FitCollimatorToStructure(
                             new FitToStructureMargins(field.FieldMargin.Left ?? 0.0,
-                                field.FieldMargin.Bottom ?? 0.0, 
+                                field.FieldMargin.Bottom ?? 0.0,
                                 field.FieldMargin.Right ?? 0.0,
                                 field.FieldMargin.Top ?? 0.0),
                             currentPlan.StructureSet.Structures.FirstOrDefault(x => x.Id == targetId)
                                 ?? currentPlan.StructureSet.Structures.FirstOrDefault(x => x.Id == field.Target.VolumeID)
-                                ?? currentPlan.StructureSet.Structures.FirstOrDefault(x => x.StructureCodeInfos.FirstOrDefault().Code == field.Target.StructureCode.Code) 
+                                ?? currentPlan.StructureSet.Structures.FirstOrDefault(x => x.StructureCodeInfos.FirstOrDefault().Code == field.Target.StructureCode.Code)
                                 ?? currentPlan.StructureSet.Structures.FirstOrDefault(x => x.DicomType == "PTV"),
                             field.Collimator.Mode.Contains("X"),
                             field.Collimator.Mode.Contains("Y"),
@@ -411,17 +412,17 @@ namespace ClinicalTemplateReader
                         var beam = currentPlan.AddArcBeam(
                             new ExternalBeamMachineParameters(
                                 field.TreatmentUnit,
-                                GetEnergyFromBeamTemplate(field.Energy), 
-                                field.DoseRate, 
-                                field.Technique, 
+                                GetEnergyFromBeamTemplate(field.Energy),
+                                field.DoseRate,
+                                field.Technique,
                                 field.PrimaryFluenceMode),
-                            new VRect<double>(field.Collimator.X1 * 10.0, field.Collimator.Y1 * 10.0, 
-                                              field.Collimator.X2 * 10.0, field.Collimator.Y2 * 10.0), 
-                            field.Collimator.Rtn, 
-                            field.Gantry.Rtn, 
-                            field.Gantry.StopRtn.Value, 
-                            GetGantryDirection(field.Gantry.RtnDirection), 
-                            field.TableRtn.Value, 
+                            new VRect<double>(field.Collimator.X1 * 10.0, field.Collimator.Y1 * 10.0,
+                                              field.Collimator.X2 * 10.0, field.Collimator.Y2 * 10.0),
+                            field.Collimator.Rtn,
+                            field.Gantry.Rtn,
+                            field.Gantry.StopRtn.Value,
+                            GetGantryDirection(field.Gantry.RtnDirection),
+                            field.TableRtn.Value,
                             GetIsocenterFromTemplate(field, currentPlan, targetId));
                         beam.Id = field.ID;
                     }
@@ -432,12 +433,12 @@ namespace ClinicalTemplateReader
                     // Static beam can be added because IMRT optimization will generate the MLC and sequences. 
                     var b = currentPlan.AddStaticBeam(
                         new ExternalBeamMachineParameters(
-                            field.TreatmentUnit, 
-                            GetEnergyFromBeamTemplate(field.Energy), 
-                            field.DoseRate, 
-                            field.Technique, 
+                            field.TreatmentUnit,
+                            GetEnergyFromBeamTemplate(field.Energy),
+                            field.DoseRate,
+                            field.Technique,
                             field.PrimaryFluenceMode),
-                        new VRect<double>(field.Collimator.X1 * 10.0, field.Collimator.Y1 * 10.0, 
+                        new VRect<double>(field.Collimator.X1 * 10.0, field.Collimator.Y1 * 10.0,
                                           field.Collimator.X2 * 10.0, field.Collimator.Y2 * 10.0),
                         field.Collimator.Rtn,
                         field.Gantry.Rtn,
@@ -448,9 +449,9 @@ namespace ClinicalTemplateReader
                     {
                         b.FitCollimatorToStructure(
                             new FitToStructureMargins(
-                                field.FieldMargin.Left ?? 0.0, 
-                                field.FieldMargin.Bottom ?? 0.0, 
-                                field.FieldMargin.Right ?? 0.0, 
+                                field.FieldMargin.Left ?? 0.0,
+                                field.FieldMargin.Bottom ?? 0.0,
+                                field.FieldMargin.Right ?? 0.0,
                                 field.FieldMargin.Top ?? 0.0),
                             currentPlan.StructureSet.Structures.FirstOrDefault(x => x.Id == targetId)
                                 ?? currentPlan.StructureSet.Structures.FirstOrDefault(x => x.Id == field.Target.VolumeID)
@@ -472,7 +473,7 @@ namespace ClinicalTemplateReader
 
             Debug.WriteLine($"Generate Plan {currentPlan.Id} with the following fields:{Environment.NewLine}Beam Id\tGantry Angle\tTechnique{Environment.NewLine}" +
                             $"{string.Join($"{Environment.NewLine}", currentPlan.Beams.Select(x => new { s = $"{x.Id}\t{x.ControlPoints.First().GantryAngle}\t{x.Technique}" }).Select(x => x.s))}");
-            
+
             return currentPlan;
         }
 
@@ -492,11 +493,27 @@ namespace ClinicalTemplateReader
                 planTemplate.PrescribedPercentage.Value);
         }
 
-        public List<DoseMetricModel> CompareProtocolDoseMetrics(PlanningItem plan, ClinicalTemplate template)
+        public List<DoseMetricModel> CompareProtocolDoseMetrics(PlanningItem plan, Protocol template)
         {
-            throw new NotImplementedException();
-        }
+            List<DoseMetricModel> doseMetricModel = new List<DoseMetricModel>();
+            if (template.Phases == null || template.Phases.Count() == 0 || template.Phases.All(x => x.Prescription == null))
+            {
+                return doseMetricModel;
+            }
+            foreach (var prescription in template.Phases.Where(x => x.Prescription != null).Select(x => x.Prescription))
+            {
+                foreach (var item in prescription.Items)
+                {
+                    doseMetricModel.Add(FormatItemToDoseMetric(item, plan));
+                }
+                foreach (var measureItem in prescription.MeasureItem)
+                {
+                    doseMetricModel.Add(FormatMeasureItemToDoseMetric(measureItem, plan));
+                }
+            }
+            return doseMetricModel;
 
+        }
         #endregion
 
         #region Helper methods for APIs
@@ -507,13 +524,13 @@ namespace ClinicalTemplateReader
         /// <param name="courses">Existing courses</param>
         /// <returns>New Course ID</returns>
         private string GenerateNewCourseId(IEnumerable<Course> courses)
-        {            
+        {
             int largestIndex = 0;
-            courses.Where(c => c.Id.Contains("Auto")).ToList().ForEach(c =>                
+            courses.Where(c => c.Id.Contains("Auto")).ToList().ForEach(c =>
             {
                 var number = Regex.Replace(c.Id, "^\\D+", string.Empty);
                 var index = int.Parse(number);
-                if(largestIndex < index) 
+                if (largestIndex < index)
                 {
                     largestIndex = index;
                 }
@@ -541,9 +558,9 @@ namespace ClinicalTemplateReader
             double fsx = x2 - x1;
             editables.SetJawPositions(
                 new VRect<double>(
-                    beamCount % 2 == 0 ? x1 + 10.0 : x1 + (fsx - 150.0) - 10.0, 
-                    beam.ControlPoints.First().JawPositions.Y1, 
-                    beamCount % 2 == 0 ? x2 - (fsx - 150.0) + 10.0 : x2 - 10.0, 
+                    beamCount % 2 == 0 ? x1 + 10.0 : x1 + (fsx - 150.0) - 10.0,
+                    beam.ControlPoints.First().JawPositions.Y1,
+                    beamCount % 2 == 0 ? x2 - (fsx - 150.0) + 10.0 : x2 - 10.0,
                     beam.ControlPoints.First().JawPositions.Y2));
             beam.ApplyParameters(editables);
 
@@ -627,27 +644,27 @@ namespace ClinicalTemplateReader
                     {
                         // Check for any PTV third.
                         target = plan.StructureSet.Structures.FirstOrDefault(o => o.DicomType.Contains("PTV"));
-                        if (target == null) 
-                        { 
-                            throw new ApplicationException("Could not determine target!"); 
+                        if (target == null)
+                        {
+                            throw new ApplicationException("Could not determine target!");
                         }
                     }
                 }
 
                 // AFTS is at field target center.
                 var targetCenterPoint = target.CenterPoint;
-                return beam.Isocenter.Placement == IscoenterPlacementEnum.AFTS 
+                return beam.Isocenter.Placement == IscoenterPlacementEnum.AFTS
                     ? target.CenterPoint
                     // RFTS is relative to field target center.
                     : new VVector(targetCenterPoint.x + isoCenterX, targetCenterPoint.y + isoCenterY, targetCenterPoint.z + isoCenterZ);
             }
             // At image (user) origin
-            else if (beam.Isocenter.Placement == IscoenterPlacementEnum.AIO) 
+            else if (beam.Isocenter.Placement == IscoenterPlacementEnum.AIO)
             {
                 return plan.StructureSet.Image.UserOrigin;
             }
             // Relative to image (user) origin
-            else if (beam.Isocenter.Placement == IscoenterPlacementEnum.RIO) 
+            else if (beam.Isocenter.Placement == IscoenterPlacementEnum.RIO)
             {
                 var userOrigin = plan.StructureSet.Image.UserOrigin;
                 return new VVector(userOrigin.x + isoCenterX, userOrigin.y + isoCenterY, userOrigin.z + isoCenterZ);
@@ -753,7 +770,321 @@ namespace ClinicalTemplateReader
 
             return sites;
         }
+        /// <summary>
+        /// Converts Measure Item from Clinical Protocols into Internal DoseMetricModel
+        /// </summary>
+        /// <param name="measureItem">Measure item from Clinical Protocol</param>
+        /// <param name="plan">Planning Item to be compared</param>
+        /// <returns>DoseMetricModel</returns>
+        private DoseMetricModel FormatMeasureItemToDoseMetric(MeasureItem measureItem, PlanningItem plan)
+        {
+            var doseMetric = new DoseMetricModel();
+            //int numFx = GetNumberOfFractions(plan);
+            doseMetric.StructureId = measureItem.ID;
+            if (measureItem.Type == TypeEnum.DoseAtAbsoluteVolume || measureItem.Type == TypeEnum.DoseAtRelativeVolume)
+            {
+                doseMetric.MetricType = DoseMetricTypeEnum.DoseAtVolume;
+                if (!plan.StructureSet.Structures.Any(x => x.Id == measureItem.ID))
+                {
+                    doseMetric.ResultText = "Structure Not Found";
+                    return doseMetric;
+                }
+                doseMetric.InputUnit = measureItem.Type == TypeEnum.DoseAtAbsoluteVolume ? ResultUnitEnum.cc : ResultUnitEnum.PercentVolume;
+                doseMetric.InputValue = (double)measureItem.TypeSpecifier;
+                //the value has been null in some instances
+                doseMetric.TargetValue = measureItem.Value != null ? (double)measureItem.Value : 0.0;
+                doseMetric.TargetUnit = measureItem.ReportDQPValueInAbsoluteUnits ? ResultUnitEnum.Gy : ResultUnitEnum.PercentDose;
+                var planDoseUnit = GetPlanDoseUnit(plan);
+                //convert target unit to system unit.
+                if (doseMetric.TargetUnit != ResultUnitEnum.PercentDose && doseMetric.TargetUnit.ToString() != planDoseUnit.ToString())
+                {
+                    doseMetric.TargetUnit = ResultUnitEnum.cGy;
+                    doseMetric.TargetValue = (double)measureItem.Value * 100.0;
+                }
+                doseMetric.ResultUnit = doseMetric.TargetUnit;
+                //Get result from DVH. 
+                double resultValue = GetDoseResultFromItem(doseMetric, plan);
+                doseMetric.ResultValue = resultValue;
+                //Compare to target expectation.
+                switch (measureItem.Modifier)
+                {
+                    case MeasureItemModifierEnum.Is:
+                        doseMetric.MetricText = $"{doseMetric.StructureId} D{doseMetric.InputValue}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] equals {doseMetric.TargetValue} {ConvertUnitToString(doseMetric.TargetUnit)}";
+                        doseMetric.Pass = measureItem.Value == null ? PassResultEnum.NA : doseMetric.ResultValue == doseMetric.TargetValue ? PassResultEnum.Pass : PassResultEnum.Fail;
+                        break;
+                    case MeasureItemModifierEnum.IsLessThan:
+                        doseMetric.MetricText = $"{doseMetric.StructureId} D{doseMetric.InputValue}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] is less than {doseMetric.TargetValue} {ConvertUnitToString(doseMetric.TargetUnit)}";
+                        doseMetric.Pass = measureItem.Value == null ? PassResultEnum.NA : doseMetric.ResultValue < doseMetric.TargetValue ? PassResultEnum.Pass : PassResultEnum.Fail;
+                        break;
+                    case MeasureItemModifierEnum.IsMoreThan:
+                        doseMetric.MetricText = $"{doseMetric.StructureId} D{doseMetric.InputValue}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] is more than {doseMetric.TargetValue} {ConvertUnitToString(doseMetric.TargetUnit)}";
+                        doseMetric.Pass = measureItem.Value == null ? PassResultEnum.NA : doseMetric.ResultValue > doseMetric.TargetValue ? PassResultEnum.Pass : PassResultEnum.Fail;
+                        break;
+                }
+                doseMetric.ResultText = $"{doseMetric.StructureId} D{doseMetric.InputValue}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] = {doseMetric.ResultValue:F2} {doseMetric.ResultUnit}";
 
+            }
+            else if (measureItem.Type == TypeEnum.VolumeAtAbsoluteDose || measureItem.Type == TypeEnum.VolumeAtRelativeDose)
+            {
+                doseMetric.MetricType = DoseMetricTypeEnum.VolumeAtDose;
+                if (!plan.StructureSet.Structures.Any(x => x.Id == measureItem.ID))
+                {
+                    doseMetric.ResultText = "Structure Not Found";
+                    return doseMetric;
+                }
+                doseMetric.InputUnit = measureItem.Type == TypeEnum.VolumeAtAbsoluteDose ? ResultUnitEnum.Gy : ResultUnitEnum.PercentDose;
+                doseMetric.InputValue = (double)measureItem.TypeSpecifier;
+                doseMetric.TargetUnit = measureItem.ReportDQPValueInAbsoluteUnits ? ResultUnitEnum.cc : ResultUnitEnum.PercentVolume;
+                doseMetric.TargetValue = measureItem.Value != null ? (double)measureItem.Value : 0.0;
+                var planDoseUnit = GetPlanDoseUnit(plan);
+                //convert target unit to system unit.
+                if (doseMetric.InputUnit != ResultUnitEnum.PercentDose && doseMetric.InputUnit.ToString() != planDoseUnit.ToString())
+                {
+                    doseMetric.InputUnit = ResultUnitEnum.cGy;
+                    doseMetric.InputValue = (double)measureItem.TypeSpecifier * 100.0;
+                }
+                doseMetric.ResultUnit = doseMetric.TargetUnit;
+                double resultValue = GetVolumeResultFromItem(doseMetric, plan);
+                doseMetric.ResultValue = resultValue;
+                switch (measureItem.Modifier)
+                {
+                    case MeasureItemModifierEnum.Is:
+                        doseMetric.MetricText = $"{doseMetric.StructureId} V{doseMetric.InputValue}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] equals {doseMetric.TargetValue} {ConvertUnitToString(doseMetric.TargetUnit)}";
+                        doseMetric.Pass = measureItem.Value == null ? PassResultEnum.NA : doseMetric.ResultValue == doseMetric.TargetValue ? PassResultEnum.Pass : PassResultEnum.Fail;
+                        break;
+                    case MeasureItemModifierEnum.IsLessThan:
+                        doseMetric.MetricText = $"{doseMetric.StructureId} V{doseMetric.InputValue}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] is less than {doseMetric.TargetValue} {ConvertUnitToString(doseMetric.TargetUnit)}";
+                        doseMetric.Pass = measureItem.Value == null ? PassResultEnum.NA : doseMetric.ResultValue < doseMetric.TargetValue ? PassResultEnum.Pass : PassResultEnum.Fail;
+                        break;
+                    case MeasureItemModifierEnum.IsMoreThan:
+                        doseMetric.MetricText = $"{doseMetric.StructureId} V{doseMetric.InputValue}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] is more than {doseMetric.TargetValue} {ConvertUnitToString(doseMetric.TargetUnit)}";
+                        doseMetric.Pass = measureItem.Value == null ? PassResultEnum.NA : doseMetric.ResultValue > doseMetric.TargetValue ? PassResultEnum.Pass : PassResultEnum.Fail;
+                        break;
+                }
+                doseMetric.ResultText = $"{doseMetric.StructureId} V{doseMetric.InputValue}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] = {doseMetric.ResultValue:F2} {doseMetric.ResultUnit}";
+
+            }
+            else
+            {
+                doseMetric.ResultText = "Conformity Index and Gradient Measure not supported in this version.";
+            }
+            return doseMetric;
+
+        }
+        /// <summary>
+        /// Get DoseMetricModel from clinical protocol item.
+        /// </summary>
+        /// <param name="item">Protocol prescription item</param>
+        /// <param name="plan">Planning item (plan or plansum)</param>
+        /// <returns>DoseMetricModel</returns>
+        private DoseMetricModel FormatItemToDoseMetric(Item item, PlanningItem plan)
+        {
+            var doseMetric = new DoseMetricModel();
+            //int numFx = GetNumberOfFractions(plan);
+            doseMetric.StructureId = item.ID;
+            doseMetric.TargetUnit = ResultUnitEnum.Gy;//items are always in Gy.
+            doseMetric.TargetValue = (double)item.TotalDose;
+            //convert target unit to system unit.
+            var doseUnit = GetPlanDoseUnit(plan);
+            if (doseUnit.ToString() != doseMetric.TargetUnit.ToString())
+            {
+                doseMetric.TargetUnit = ResultUnitEnum.cGy;
+                doseMetric.TargetValue = ((double)item.TotalDose) * 100.0;
+            }
+            if (!plan.StructureSet.Structures.Any(x => x.Id == item.ID))
+            {
+                doseMetric.ResultText = "Structure Not Found";
+                return doseMetric;
+            }
+            else
+            {
+                if (item.Modifier == ModifierEnum.AtLeast || item.Modifier == ModifierEnum.AtMost)
+                {
+                    doseMetric.InputValue = item.Parameter;
+                    doseMetric.InputUnit = ResultUnitEnum.PercentVolume;
+                    doseMetric.MetricType = DoseMetricTypeEnum.DoseAtVolume;
+                    doseMetric.MetricText = $"{doseMetric.StructureId} at least {doseMetric.InputValue} % recieves more than {doseMetric.TargetValue}{doseMetric.TargetUnit}";
+                    doseMetric.ResultUnit = doseMetric.TargetUnit;
+                    double resultValue = GetDoseResultFromItem(doseMetric, plan);
+                    doseMetric.ResultValue = resultValue;
+                    if (item.Modifier == ModifierEnum.AtMost)
+                    {
+                        //the pass criteria for this metric ("AtMost") is different than what Eclipse will show. I believe Eclipse may pass this metric in error.
+                        doseMetric.Pass = doseMetric.ResultValue <= doseMetric.TargetValue ? PassResultEnum.Pass : PassResultEnum.Fail;
+                    }
+                    else
+                    {
+                        doseMetric.Pass = doseMetric.ResultValue >= doseMetric.TargetValue ? PassResultEnum.Pass : PassResultEnum.Fail;
+                    }
+                    doseMetric.ResultText = $"{doseMetric.StructureId} {doseMetric.InputValue} % receives {doseMetric.ResultValue:F2}{doseMetric.ResultUnit}";
+                }
+                else if (item.Modifier == ModifierEnum.MaxDoseIs || item.Modifier == ModifierEnum.MaxDoseIsLessThan || item.Modifier == ModifierEnum.MeanDoseIs ||
+                    item.Modifier == ModifierEnum.MeanDoseIsLessThan || item.Modifier == ModifierEnum.MeanDoseIsMoreThan || item.Modifier == ModifierEnum.MinDoseIs ||
+                    item.Modifier == ModifierEnum.MinDoseIsMoreThan)
+                {
+                    switch (item.Modifier)
+                    {
+                        case ModifierEnum.MaxDoseIs:
+                        case ModifierEnum.MaxDoseIsLessThan:
+                            doseMetric.MetricType = DoseMetricTypeEnum.MaxDose;
+                            doseMetric.MetricText = $"{doseMetric.StructureId} Max Dose is {(item.Modifier == ModifierEnum.MaxDoseIsLessThan ? "less than " : "")}{doseMetric.TargetValue}{doseMetric.TargetUnit}";
+                            break;
+                        case ModifierEnum.MeanDoseIs:
+                        case ModifierEnum.MeanDoseIsLessThan:
+                        case ModifierEnum.MeanDoseIsMoreThan:
+                            doseMetric.MetricType = DoseMetricTypeEnum.MeanDose;
+                            doseMetric.MetricText = $"{doseMetric.StructureId} Mean Dose is {(item.Modifier == ModifierEnum.MeanDoseIs ? "" : item.Modifier == ModifierEnum.MeanDoseIsLessThan ? "less than " : "more than ")}{doseMetric.TargetValue}{doseMetric.TargetUnit}";
+                            break;
+                        case ModifierEnum.MinDoseIs:
+                        case ModifierEnum.MinDoseIsMoreThan:
+                            doseMetric.MetricType = DoseMetricTypeEnum.MinDose;
+                            doseMetric.MetricText = $"{doseMetric.StructureId} Min Dose is {(item.Modifier == ModifierEnum.MinDoseIsMoreThan ? "more than " : "")}{doseMetric.TargetValue}{doseMetric.TargetUnit}";
+                            break;
+                    }
+                    doseMetric.ResultUnit = doseMetric.TargetUnit;
+                    double resultValue = GetDoseResultFromItem(doseMetric, plan);
+                    doseMetric.ResultValue = resultValue;
+                    //get passing for metric.
+                    switch (item.Modifier)
+                    {
+                        case ModifierEnum.MaxDoseIs:
+                        case ModifierEnum.MeanDoseIs:
+                        case ModifierEnum.MinDoseIs:
+                            doseMetric.Pass = doseMetric.ResultValue == doseMetric.TargetValue ? PassResultEnum.Pass : PassResultEnum.Fail;
+                            break;
+                        case ModifierEnum.MeanDoseIsLessThan:
+                        case ModifierEnum.MaxDoseIsLessThan:
+                            doseMetric.Pass = doseMetric.ResultValue < doseMetric.TargetValue ? PassResultEnum.Pass : PassResultEnum.Fail;
+                            break;
+                        case ModifierEnum.MeanDoseIsMoreThan:
+                        case ModifierEnum.MinDoseIsMoreThan:
+                            doseMetric.Pass = doseMetric.ResultValue > doseMetric.TargetValue ? PassResultEnum.Pass : PassResultEnum.Fail;
+                            break;
+                    }
+                    doseMetric.ResultText = $"{doseMetric.StructureId} {doseMetric.MetricType} = {doseMetric.ResultValue:F2}{doseMetric.ResultUnit}";
+                }
+                else
+                {
+                    doseMetric.ResultText = "Reference Points Isodose lines and depths not supported in this version";
+                }
+                return doseMetric;
+            }
+        }
+        /// <summary>
+        /// Converts the Unit enum to string for metric text
+        /// </summary>
+        /// <param name="inputUnit">ResultUnitEnum unit</param>
+        /// <returns>string representing the unit. The only difference from ToString() is PercentVolume and PercentDose are converted to '%'</returns>
+        private string ConvertUnitToString(ResultUnitEnum inputUnit)
+        {
+            switch (inputUnit)
+            {
+                case ResultUnitEnum.PercentDose:
+                case ResultUnitEnum.PercentVolume:
+                    return "%";
+                case ResultUnitEnum.cGy:
+                    return "cGy";
+                case ResultUnitEnum.cc:
+                    return "cc";
+                case ResultUnitEnum.Gy:
+                    return "Gy";
+                default:
+                    return String.Empty;
+            }
+        }
+        /// <summary>
+        /// Extracts DVH Dose value corresponding to metric
+        /// </summary>
+        /// <param name="doseMetric">Currently built dose metric.</param>
+        /// <param name="plan">Planning Item from which the DVH should be extracted.</param>
+        /// <returns>double, dose value in unit of return value.</returns>
+        private double GetDoseResultFromItem(DoseMetricModel doseMetric, PlanningItem plan)
+        {
+            Structure structure = plan.StructureSet.Structures.FirstOrDefault(x => x.Id == doseMetric.StructureId);
+            var doseUnit = GetPlanDoseUnit(plan);
+            var dvh = plan.GetDVHCumulativeData(structure,
+                doseMetric.ResultUnit == ResultUnitEnum.PercentDose ? DoseValuePresentation.Relative : DoseValuePresentation.Absolute,
+                doseMetric.InputUnit == ResultUnitEnum.cc ? VolumePresentation.AbsoluteCm3 : VolumePresentation.Relative,
+                doseUnit == DoseValue.DoseUnit.Gy ? 0.01 : 0.1);
+            double returnDose = 0.0;
+            switch (doseMetric.MetricType)
+            {
+                case DoseMetricTypeEnum.MaxDose:
+                    returnDose = dvh.MaxDose.Dose;
+                    break;
+                case DoseMetricTypeEnum.MinDose:
+                    returnDose = dvh.MinDose.Dose;
+                    break;
+                case DoseMetricTypeEnum.MeanDose:
+                    returnDose = dvh.MeanDose.Dose;
+                    break;
+                default:
+                    returnDose = dvh.CurveData.FirstOrDefault(x => x.Volume <= doseMetric.InputValue).DoseValue.Dose;
+                    break;
+            }
+            //convert returned dose if necessary.
+            if (doseMetric.ResultUnit != ResultUnitEnum.PercentDose && doseMetric.ResultUnit.ToString() != doseUnit.ToString())
+            {
+                //dose unit in Gy but result should be cGy
+                if (doseMetric.ResultUnit == ResultUnitEnum.Gy)
+                {
+                    returnDose = returnDose * 100.0;
+                }
+                else//dose unit in cGy but result should be Gy
+                {
+                    returnDose = returnDose / 100.0;
+                }
+            }
+            return returnDose;
+        }
+        /// <summary>
+        /// Extract DVH Volume from corresponding dose metric
+        /// </summary>
+        /// <param name="doseMetric">Currently being built dose metric</param>
+        /// <param name="plan">Planning Item for DVH extraction</param>
+        /// <returns>Volume value from DVH metric in return unit.</returns>
+        private double GetVolumeResultFromItem(DoseMetricModel doseMetric, PlanningItem plan)
+        {
+            Structure structure = plan.StructureSet.Structures.FirstOrDefault(x => x.Id == doseMetric.StructureId);
+            var doseUnit = GetPlanDoseUnit(plan);
+            var dvh = plan.GetDVHCumulativeData(structure,
+                doseMetric.InputUnit == ResultUnitEnum.PercentDose ? DoseValuePresentation.Relative : DoseValuePresentation.Absolute,
+                doseMetric.ResultUnit == ResultUnitEnum.cc ? VolumePresentation.AbsoluteCm3 : VolumePresentation.Relative,
+                doseUnit == DoseValue.DoseUnit.Gy ? 0.01 : 0.1);
+            var doseInput = doseMetric.InputValue;
+            //convert input dose unit prior to comparison.
+            if (doseMetric.InputUnit != ResultUnitEnum.PercentDose && doseMetric.InputUnit.ToString() != doseUnit.ToString())
+            {
+                if (doseMetric.InputUnit == ResultUnitEnum.Gy)
+                {
+                    doseInput = doseInput * 100.0;
+                }
+                else
+                {
+                    doseInput = doseInput / 100.0;
+                }
+            }
+            double returnVolume = dvh.CurveData.FirstOrDefault(x => x.DoseValue.Dose >= doseInput).Volume;
+            return returnVolume;
+        }
+        /// <summary>
+        /// Get Dose Unit from Treatment plan
+        /// </summary>
+        /// <param name="plan">Planning Item to be converted to plansetup or plansum.</param>
+        /// <returns>Dose Unit from plan's TotalDose</returns>
+        internal static DoseValue.DoseUnit GetPlanDoseUnit(PlanningItem plan)
+        {
+            if (plan is PlanSum)
+            {
+                return (plan as PlanSum).PlanSetups.FirstOrDefault().TotalDose.Unit;
+            }
+            else if (plan is PlanSetup)
+            {
+                return (plan as PlanSetup).TotalDose.Unit;
+            }
+            else { return DoseValue.DoseUnit.Unknown; }
+
+        }
         #endregion
     }
 }

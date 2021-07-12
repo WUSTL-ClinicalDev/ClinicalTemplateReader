@@ -53,7 +53,10 @@
   <ItemGroup>
     <Compile Include="ApprovalStatistics.cs" />
     <Compile Include="ClinicalTemplate.cs" />
-    <Compile Include="Models\DoseMetricModel.cs" />
+    <Compile Include="Models\Internals\DoseMetricModel.cs" />
+    <Compile Include="Models\Internals\DoseMetricTypeEnum.cs" />
+    <Compile Include="Models\Internals\PassResultEnum.cs" />
+    <Compile Include="Models\Internals\ResultUnitEnum.cs" />
     <Compile Include="Models\Item.cs" />
     <Compile Include="Models\MeasureItem.cs" />
     <Compile Include="Models\MeasureItemModifierEnum.cs" />
