@@ -327,7 +327,7 @@ namespace ClinicalTemplateReader
             foreach (var field in planTemplate.Fields.Where(x => !x.Setup))
             {
                 // Planning for arc fields
-                if (planTemplate.Preview.TreatmentStyle.ToUpper().Contains("ARC"))
+                if (field.Technique.ToUpper().Contains("ARC"))
                 {
                     // First check if there is an MLC margin.
                     // If there is an MLC margin, a field needs to be set up so that the MLC margin
