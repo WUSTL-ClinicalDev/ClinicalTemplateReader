@@ -1028,6 +1028,10 @@ namespace ClinicalTemplateReader
                     {
                         returnDose = dvh.MinDose.Dose;
                     }
+                    else if(doseMetric.InputValue< dvh.CurveData.Min(x => x.Volume))
+                    {
+                        returnDose = dvh.MaxDose.Dose;
+                    }
                     else
                     {
                         returnDose = dvh.CurveData.FirstOrDefault(x => x.Volume <= doseMetric.InputValue).DoseValue.Dose;
@@ -1076,7 +1080,7 @@ namespace ClinicalTemplateReader
                     doseInput = doseInput / 100.0;
                 }
             }
-            double returnVolume = dvh.CurveData.FirstOrDefault(x => x.DoseValue.Dose >= doseInput).Volume;
+            double returnVolume = dvh.CurveData.Max(x=>x.DoseValue.Dose)< doseMetric.InputValue ? 0.0: dvh.CurveData.FirstOrDefault(x => x.DoseValue.Dose >= doseInput).Volume;
             return returnVolume;
         }
         /// <summary>
