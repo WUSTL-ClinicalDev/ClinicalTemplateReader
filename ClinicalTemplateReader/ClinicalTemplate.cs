@@ -1024,7 +1024,14 @@ namespace ClinicalTemplateReader
                     returnDose = dvh.MeanDose.Dose;
                     break;
                 default:
-                    returnDose = dvh.CurveData.FirstOrDefault(x => x.Volume <= doseMetric.InputValue).DoseValue.Dose;
+                    if (doseMetric.InputValue == 100 && doseMetric.InputUnit == ResultUnitEnum.PercentVolume)
+                    {
+                        returnDose = dvh.MinDose.Dose;
+                    }
+                    else
+                    {
+                        returnDose = dvh.CurveData.FirstOrDefault(x => x.Volume <= doseMetric.InputValue).DoseValue.Dose;
+                    }
                     break;
             }
             //convert returned dose if necessary.
