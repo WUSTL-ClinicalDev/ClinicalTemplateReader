@@ -12,6 +12,8 @@ namespace ClinicalTemplateReader
         public double? DosePerFraction { get; set; }
         [XmlElement(IsNullable = true)]
         public int? FractionCount { get; set; }
+        [XmlElement(IsNullable =true)]
+        public string TreatmentStyle { get; set; }
         //FieldAlignment rules
         public PrescriptionSite PrescriptionSite { get; set; }
         //[XmlArrayItem("Field")]
