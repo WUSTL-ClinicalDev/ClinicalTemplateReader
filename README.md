@@ -158,3 +158,39 @@ This does not require that you first build the plan with the ClinicalTemplateRea
 The final result should look something like this.
 
 ![DoseMetricResults](ClinicalTemplateReader/DescriptionImages/DoseMetricResult.JPG)
+
+## Optimze plan with DVHEstimation (RapidPlan) -- V16 Only
+In V16, the Rapidplan details, such as the structures included in a Rapidplan model, can be queried with ESAPI. This feature can now be leveraged by the ClinicalTemplateReader.
+First set up the code to allow the user to select the Rapidplan model they want to select for a given plan. Here _newplan_ is used as an example as seen above
+```csharp
+    //optimize plan using Rapidplan.
+    var rp_models = app.Calculation.GetDvhEstimationModelSummaries();
+    var rp_count = 0;
+    foreach(var rp in rp_models)
+    {                    
+        Console.WriteLine($"[{rp_count}]. {rp.Name} - {rp.TreatmentSite}");
+        rp_count++;
+    }
+    Console.WriteLine("Please pick your RP Model:");
+    int rp_num = Convert.ToInt32(Console.ReadLine());
+    var rp_model = rp_models.ElementAt(rp_num);
+    clinicalProtols.OptimizeFromRapidPlanModel(app.Calculation.GetDvhEstimationModelStructures(rp_model.ModelUID), _newplan, rp_model, null, null, false);
+    if (_newplan.Beams.First().Technique.Id.Contains("ARC"))
+    {
+        _newplan.CalculateDose();
+    }
+    else 
+    {
+        _newplan.CalculateLeafMotionsAndDose();
+    } 
+    app.SaveModifications();
+
+```
+Once the code has run, you should have optimization results driven by the DVH Estimation algorithm. 
+
+![DVHEResults](ClinicalTemplateReader/DescriptionImages/DVHE_Optimized.JPG)
+
+Some notes regarding this method
+- The *targetmatches* and *structurematches* can be determined by the client code beforehand and passed into the method.
+- The method can also determine these matches for you by matching first based on structure name and then on structure code. **So make sure your Rapidplan model matches your structure template structure Ids**
+- Target matches will always use the plan total dose as the dose input.
