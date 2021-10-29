@@ -54,6 +54,7 @@
   <ItemGroup>
     <Compile Include="ApprovalStatistics.cs" />
     <Compile Include="ClinicalTemplate.cs" />
+    <Compile Include="Helpers\Logger.cs" />
     <Compile Include="Models\Internals\DoseMetricModel.cs" />
     <Compile Include="Models\Internals\DoseMetricTypeEnum.cs" />
     <Compile Include="Models\Internals\PassResultEnum.cs" />

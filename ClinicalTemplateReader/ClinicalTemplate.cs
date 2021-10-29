@@ -1,4 +1,5 @@
-﻿using ClinicalTemplateReader.Models;
+﻿using ClinicalTemplateReader.Helpers;
+using ClinicalTemplateReader.Models;
 using ClinicalTemplateReader.Models.Internals;
 using System;
 using System.Collections.Generic;
@@ -59,9 +60,32 @@ namespace ClinicalTemplateReader
         /// <param name="imageServer">Address of the image server (e.g. hospImgSrv or 192.168.88.130)</param>
         public ClinicalTemplate(string imageServer)
         {
-            ClinicalProtocols = DeserializeXmlFile<Protocol>(Path.Combine(@"\\", imageServer, TEMPLATES_PROTOCOL_PATH));
-            ObjectiveTemplates = DeserializeXmlFile<ObjectiveTemplate>(Path.Combine(@"\\", imageServer, TEMPLATES_OBJECTIVE_PATH));
-            PlanTemplates = DeserializeXmlFile<PlanTemplate>(Path.Combine(@"\\", imageServer, TEMPLATES_PLAN_PATH));
+            ClinicalProtocols = DeserializeXMLFileLogger<Protocol>(Path.Combine(@"\\", imageServer, TEMPLATES_PROTOCOL_PATH));
+            ObjectiveTemplates = DeserializeXMLFileLogger<ObjectiveTemplate>(Path.Combine(@"\\", imageServer, TEMPLATES_OBJECTIVE_PATH));
+            PlanTemplates = DeserializeXMLFileLogger<PlanTemplate>(Path.Combine(@"\\", imageServer, TEMPLATES_PLAN_PATH));
+        }
+        private List<T> DeserializeXMLFileLogger<T>(string path)
+        {
+            List<T> resultList = new List<T>();
+            XmlSerializer serializer = new XmlSerializer(typeof(T));
+            foreach (var file in Directory.EnumerateFiles(path, "*.xml"))
+            {
+                //Console.WriteLine(file);
+                try
+                {
+                    using (StreamReader reader = new StreamReader(file))
+                    {
+                        var deserialized = ((T)serializer.Deserialize(reader));
+                        resultList.Add(deserialized);
+                    }
+                }
+                catch (Exception exception)
+                {
+                    //File.AppendAllText("clinicalTemplateReader_errors.txt", $"Can't deserialize ARIA xml file! File: {file}.{Environment.NewLine} Reason: {exception}");
+                    Logger.LogError($"Cannot deserialize ARIA XML file: {file}. {Environment.NewLine} Reason: {exception}");
+                }
+            }
+            return resultList;
         }
 
         #endregion        
@@ -312,8 +336,9 @@ namespace ClinicalTemplateReader
         /// <param name="structureSet">StructureSet where plan should be created</param>
         /// <param name="planTemplate">Plan Template for plan creation</param>
         /// <param name="targetId">(optional) Id of target structure of (null to use template structure)</param>
+        /// <param name="machineId">(optional) Override the machine Id</param>
         /// <returns>The newly generated Plan Setup</returns>
-        public ExternalPlanSetup GeneratePlanFromTemplate(Course course, StructureSet structureSet, PlanTemplate planTemplate, string targetId)
+        public ExternalPlanSetup GeneratePlanFromTemplate(Course course, StructureSet structureSet, PlanTemplate planTemplate, string targetId, string machineId)
         {
             // Generate plan from template. 
             if (course == null)
@@ -337,7 +362,7 @@ namespace ClinicalTemplateReader
                     {
                         var beam = currentPlan.AddConformalArcBeam(
                             new ExternalBeamMachineParameters(
-                                field.TreatmentUnit,
+                                String.IsNullOrEmpty(machineId) ? field.TreatmentUnit : machineId,
                                 GetEnergyFromBeamTemplate(field.Energy),
                                 field.DoseRate,
                                 field.Technique,
@@ -375,7 +400,7 @@ namespace ClinicalTemplateReader
                     {
                         var beam = currentPlan.AddConformalArcBeam(
                             new ExternalBeamMachineParameters(
-                                field.TreatmentUnit,
+                                String.IsNullOrEmpty(machineId) ? field.TreatmentUnit : machineId,
                                 GetEnergyFromBeamTemplate(field.Energy),
                                 field.DoseRate,
                                 field.Technique,
@@ -411,7 +436,7 @@ namespace ClinicalTemplateReader
                         // If no fitting, a simple arc beam can be used (only 2 control points in arc beam).
                         var beam = currentPlan.AddArcBeam(
                             new ExternalBeamMachineParameters(
-                                field.TreatmentUnit,
+                                String.IsNullOrEmpty(machineId) ? field.TreatmentUnit : machineId,
                                 GetEnergyFromBeamTemplate(field.Energy),
                                 field.DoseRate,
                                 field.Technique,
@@ -433,7 +458,7 @@ namespace ClinicalTemplateReader
                     // Static beam can be added because IMRT optimization will generate the MLC and sequences. 
                     var b = currentPlan.AddStaticBeam(
                         new ExternalBeamMachineParameters(
-                            field.TreatmentUnit,
+                            String.IsNullOrEmpty(machineId) ? field.TreatmentUnit : machineId,
                             GetEnergyFromBeamTemplate(field.Energy),
                             field.DoseRate,
                             field.Technique,
@@ -502,13 +527,19 @@ namespace ClinicalTemplateReader
             }
             foreach (var prescription in template.Phases.Where(x => x.Prescription != null).Select(x => x.Prescription))
             {
-                foreach (var item in prescription.Items)
+                if (prescription.Items != null)
                 {
-                    doseMetricModel.Add(FormatItemToDoseMetric(item, plan));
+                    foreach (var item in prescription.Items)
+                    {
+                        doseMetricModel.Add(FormatItemToDoseMetric(item, plan));
+                    }
                 }
-                foreach (var measureItem in prescription.MeasureItem)
+                if (prescription.MeasureItem != null)
                 {
-                    doseMetricModel.Add(FormatMeasureItemToDoseMetric(measureItem, plan));
+                    foreach (var measureItem in prescription.MeasureItem)
+                    {
+                        doseMetricModel.Add(FormatMeasureItemToDoseMetric(measureItem, plan));
+                    }
                 }
             }
             return doseMetricModel;
@@ -788,6 +819,13 @@ namespace ClinicalTemplateReader
                 {
                     doseMetric.ResultText = "Structure Not Found";
                     doseMetric.Pass = PassResultEnum.NA;
+
+                    return doseMetric;
+                }
+                else if (plan.StructureSet.Structures.FirstOrDefault(x => x.Id == measureItem.ID).IsEmpty)
+                {
+                    doseMetric.ResultText = "Empty";
+                    doseMetric.Pass = PassResultEnum.NA;
                     return doseMetric;
                 }
                 doseMetric.InputUnit = measureItem.Type == TypeEnum.DoseAtAbsoluteVolume ? ResultUnitEnum.cc : ResultUnitEnum.PercentVolume;
@@ -897,6 +935,12 @@ namespace ClinicalTemplateReader
             if (!plan.StructureSet.Structures.Any(x => x.Id == item.ID))
             {
                 doseMetric.ResultText = "Structure Not Found";
+                doseMetric.Pass = PassResultEnum.NA;
+                return doseMetric;
+            }
+            else if (plan.StructureSet.Structures.FirstOrDefault(x => x.Id == item.ID).IsEmpty)
+            {
+                doseMetric.ResultText = "Empty";
                 doseMetric.Pass = PassResultEnum.NA;
                 return doseMetric;
             }
@@ -1028,7 +1072,7 @@ namespace ClinicalTemplateReader
                     {
                         returnDose = dvh.MinDose.Dose;
                     }
-                    else if(doseMetric.InputValue< dvh.CurveData.Min(x => x.Volume))
+                    else if (doseMetric.InputValue < dvh.CurveData.Min(x => x.Volume))
                     {
                         returnDose = dvh.MaxDose.Dose;
                     }
@@ -1080,7 +1124,7 @@ namespace ClinicalTemplateReader
                     doseInput = doseInput / 100.0;
                 }
             }
-            double returnVolume = dvh.CurveData.Max(x=>x.DoseValue.Dose)< doseMetric.InputValue ? 0.0: dvh.CurveData.FirstOrDefault(x => x.DoseValue.Dose >= doseInput).Volume;
+            double returnVolume = dvh.CurveData.Max(x => x.DoseValue.Dose) < doseMetric.InputValue ? 0.0 : dvh.CurveData.FirstOrDefault(x => x.DoseValue.Dose >= doseInput).Volume;
             return returnVolume;
         }
         /// <summary>
