@@ -684,10 +684,22 @@ namespace ClinicalTemplateReader
 
                 // AFTS is at field target center.
                 var targetCenterPoint = target.CenterPoint;
-                return beam.Isocenter.Placement == IscoenterPlacementEnum.AFTS
-                    ? target.CenterPoint
-                    // RFTS is relative to field target center.
-                    : new VVector(targetCenterPoint.x + isoCenterX, targetCenterPoint.y + isoCenterY, targetCenterPoint.z + isoCenterZ);
+                bool afts = beam.Isocenter.Placement == IscoenterPlacementEnum.AFTS;
+                var beamIsoX = afts ? target.CenterPoint.x : target.CenterPoint.x + isoCenterX;
+                var beamIsoY = afts ? target.CenterPoint.y : target.CenterPoint.y + isoCenterY;
+                var beamIsoZ = afts ? target.CenterPoint.z : target.CenterPoint.z + isoCenterZ;
+                //round to nearest mm for shift from userorigin.
+                var uoX = plan.StructureSet.Image.UserOrigin.x;
+                var uoY = plan.StructureSet.Image.UserOrigin.y;
+                var uoZ = plan.StructureSet.Image.UserOrigin.z;
+                var remainderX = (beamIsoX - uoX) - Math.Round((beamIsoX - uoX), 0);
+                var remainderY = (beamIsoY - uoY) - Math.Round((beamIsoY - uoY), 0);
+                var remainderZ = (beamIsoZ - uoZ) - Math.Round((beamIsoZ - uoZ), 0);
+                var isoX = beamIsoX - remainderX;
+                var isoY = beamIsoY - remainderY;
+                var isoZ = beamIsoZ - remainderZ;
+
+                return new VVector(isoX, isoY, isoZ);
             }
             // At image (user) origin
             else if (beam.Isocenter.Placement == IscoenterPlacementEnum.AIO)
