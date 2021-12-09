@@ -312,8 +312,9 @@ namespace ClinicalTemplateReader
         /// <param name="structureSet">StructureSet where plan should be created</param>
         /// <param name="planTemplate">Plan Template for plan creation</param>
         /// <param name="targetId">(optional) Id of target structure of (null to use template structure)</param>
+        /// <param name="machineId">(optional) Override the machine Id (null to use template machine)</param>
         /// <returns>The newly generated Plan Setup</returns>
-        public ExternalPlanSetup GeneratePlanFromTemplate(Course course, StructureSet structureSet, PlanTemplate planTemplate, string targetId)
+        public ExternalPlanSetup GeneratePlanFromTemplate(Course course, StructureSet structureSet, PlanTemplate planTemplate, string targetId, string machineId)
         {
             // Generate plan from template. 
             if (course == null)
@@ -337,7 +338,7 @@ namespace ClinicalTemplateReader
                     {
                         var beam = currentPlan.AddConformalArcBeam(
                             new ExternalBeamMachineParameters(
-                                field.TreatmentUnit,
+                                String.IsNullOrEmpty(machineId)?field.TreatmentUnit:machineId,
                                 GetEnergyFromBeamTemplate(field.Energy),
                                 field.DoseRate,
                                 field.Technique,
@@ -375,7 +376,7 @@ namespace ClinicalTemplateReader
                     {
                         var beam = currentPlan.AddConformalArcBeam(
                             new ExternalBeamMachineParameters(
-                                field.TreatmentUnit,
+                                String.IsNullOrEmpty(machineId)?field.TreatmentUnit:machineId,
                                 GetEnergyFromBeamTemplate(field.Energy),
                                 field.DoseRate,
                                 field.Technique,
@@ -411,7 +412,7 @@ namespace ClinicalTemplateReader
                         // If no fitting, a simple arc beam can be used (only 2 control points in arc beam).
                         var beam = currentPlan.AddArcBeam(
                             new ExternalBeamMachineParameters(
-                                field.TreatmentUnit,
+                                String.IsNullOrEmpty(machineId)?field.TreatmentUnit:machineId,
                                 GetEnergyFromBeamTemplate(field.Energy),
                                 field.DoseRate,
                                 field.Technique,
@@ -433,7 +434,7 @@ namespace ClinicalTemplateReader
                     // Static beam can be added because IMRT optimization will generate the MLC and sequences. 
                     var b = currentPlan.AddStaticBeam(
                         new ExternalBeamMachineParameters(
-                            field.TreatmentUnit,
+                            String.IsNullOrEmpty(machineId)?field.TreatmentUnit:machineId,
                             GetEnergyFromBeamTemplate(field.Energy),
                             field.DoseRate,
                             field.Technique,
