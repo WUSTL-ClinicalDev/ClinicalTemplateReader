@@ -8,6 +8,6 @@ authors:
   given-names: "Peter"
 title: "Clinical Template Reader"
 version: 1.0.0.9
-doi: 10.5281/zenodo.1234
+doi: 
 date-released: 2020-11-13
 url: "https://github.com/WUSTL-ClinicalDev/ClinicalTemplateReader"
