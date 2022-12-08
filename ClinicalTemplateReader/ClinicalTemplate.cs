@@ -827,14 +827,14 @@ namespace ClinicalTemplateReader
             if (measureItem.Type == TypeEnum.DoseAtAbsoluteVolume || measureItem.Type == TypeEnum.DoseAtRelativeVolume)
             {
                 doseMetric.MetricType = DoseMetricTypeEnum.DoseAtVolume;
-                if (!plan.StructureSet.Structures.Any(x => x.Id == measureItem.ID))
+                if (!plan.StructureSet.Structures.Any(x => x.Id.Equals(measureItem.ID, StringComparison.OrdinalIgnoreCase)))
                 {
                     doseMetric.ResultText = "Structure Not Found";
                     doseMetric.Pass = PassResultEnum.NA;
 
                     return doseMetric;
                 }
-                else if (plan.StructureSet.Structures.FirstOrDefault(x => x.Id == measureItem.ID).IsEmpty)
+                else if (plan.StructureSet.Structures.FirstOrDefault(x => x.Id.Equals(measureItem.ID, StringComparison.OrdinalIgnoreCase)).IsEmpty)
                 {
                     doseMetric.ResultText = "Empty";
                     doseMetric.Pass = PassResultEnum.NA;
@@ -878,7 +878,7 @@ namespace ClinicalTemplateReader
             else if (measureItem.Type == TypeEnum.VolumeAtAbsoluteDose || measureItem.Type == TypeEnum.VolumeAtRelativeDose)
             {
                 doseMetric.MetricType = DoseMetricTypeEnum.VolumeAtDose;
-                if (!plan.StructureSet.Structures.Any(x => x.Id == measureItem.ID))
+                if (!plan.StructureSet.Structures.Any(x => x.Id.Equals(measureItem.ID, StringComparison.OrdinalIgnoreCase)))
                 {
                     doseMetric.ResultText = "Structure Not Found";
                     doseMetric.Pass = PassResultEnum.NA;
@@ -944,13 +944,13 @@ namespace ClinicalTemplateReader
                 doseMetric.TargetUnit = ResultUnitEnum.cGy;
                 doseMetric.TargetValue = ((double)item.TotalDose) * 100.0;
             }
-            if (!plan.StructureSet.Structures.Any(x => x.Id == item.ID))
+            if (!plan.StructureSet.Structures.Any(x => x.Id.Equals(item.ID,StringComparison.OrdinalIgnoreCase)))
             {
                 doseMetric.ResultText = "Structure Not Found";
                 doseMetric.Pass = PassResultEnum.NA;
                 return doseMetric;
             }
-            else if (plan.StructureSet.Structures.FirstOrDefault(x => x.Id == item.ID).IsEmpty)
+            else if (plan.StructureSet.Structures.FirstOrDefault(x => x.Id.Equals(item.ID, StringComparison.OrdinalIgnoreCase)).IsEmpty)
             {
                 doseMetric.ResultText = "Empty";
                 doseMetric.Pass = PassResultEnum.NA;
@@ -1061,7 +1061,7 @@ namespace ClinicalTemplateReader
         /// <returns>double, dose value in unit of return value.</returns>
         private double GetDoseResultFromItem(DoseMetricModel doseMetric, PlanningItem plan)
         {
-            Structure structure = plan.StructureSet.Structures.FirstOrDefault(x => x.Id == doseMetric.StructureId);
+            Structure structure = plan.StructureSet.Structures.FirstOrDefault(x => x.Id.Equals(doseMetric.StructureId, StringComparison.OrdinalIgnoreCase));
             var doseUnit = GetPlanDoseUnit(plan);
             var dvh = plan.GetDVHCumulativeData(structure,
                 doseMetric.ResultUnit == ResultUnitEnum.PercentDose ? DoseValuePresentation.Relative : DoseValuePresentation.Absolute,
@@ -1117,7 +1117,7 @@ namespace ClinicalTemplateReader
         /// <returns>Volume value from DVH metric in return unit.</returns>
         private double GetVolumeResultFromItem(DoseMetricModel doseMetric, PlanningItem plan)
         {
-            Structure structure = plan.StructureSet.Structures.FirstOrDefault(x => x.Id == doseMetric.StructureId);
+            Structure structure = plan.StructureSet.Structures.FirstOrDefault(x => x.Id.Equals(doseMetric.StructureId,StringComparison.OrdinalIgnoreCase));
             var doseUnit = GetPlanDoseUnit(plan);
             var dvh = plan.GetDVHCumulativeData(structure,
                 doseMetric.InputUnit == ResultUnitEnum.PercentDose ? DoseValuePresentation.Relative : DoseValuePresentation.Absolute,
