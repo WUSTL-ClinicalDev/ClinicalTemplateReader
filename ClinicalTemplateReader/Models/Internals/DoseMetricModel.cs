@@ -13,7 +13,7 @@ namespace ClinicalTemplateReader.Models.Internals
         public DoseMetricTypeEnum MetricType { get; set; }
         public OperatorEnum Operator { get; set; }
         public string MetricText { get; set; }
-        public double InputValue { get; set; }
+        public double? InputValue { get; set; }
         public ResultUnitEnum InputUnit { get; set; }
         public double ResultValue { get; set; }
         public ResultUnitEnum ResultUnit { get; set; }

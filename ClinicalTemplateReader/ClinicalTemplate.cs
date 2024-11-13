@@ -47,6 +47,10 @@ namespace ClinicalTemplateReader
         /// </summary>
         public List<ObjectiveTemplate> ObjectiveTemplates { get; private set; }
 
+        /// <summary>
+        /// Share to the client errors that occur during the interpretation of templates.
+        /// </summary>
+        public string ErrorString { get; private set; }
         #endregion
 
         #region Constructors
@@ -63,6 +67,10 @@ namespace ClinicalTemplateReader
             ClinicalProtocols = DeserializeXMLFileLogger<Protocol>(Path.Combine(@"\\", imageServer, TEMPLATES_PROTOCOL_PATH));
             ObjectiveTemplates = DeserializeXMLFileLogger<ObjectiveTemplate>(Path.Combine(@"\\", imageServer, TEMPLATES_OBJECTIVE_PATH));
             PlanTemplates = DeserializeXMLFileLogger<PlanTemplate>(Path.Combine(@"\\", imageServer, TEMPLATES_PLAN_PATH));
+            if (String.IsNullOrEmpty(ErrorString))
+            {
+                ErrorString = "No errors";
+            }
         }
         private List<T> DeserializeXMLFileLogger<T>(string path)
         {
@@ -83,6 +91,7 @@ namespace ClinicalTemplateReader
                 {
                     //File.AppendAllText("clinicalTemplateReader_errors.txt", $"Can't deserialize ARIA xml file! File: {file}.{Environment.NewLine} Reason: {exception}");
                     Logger.LogError($"Cannot deserialize ARIA XML file: {file}. {Environment.NewLine} Reason: {exception}");
+                    ErrorString += $"Cannot deserialize XMLC file: {file}.\n\t{exception.Message}";
                 }
             }
             return resultList;
@@ -980,9 +989,22 @@ namespace ClinicalTemplateReader
             var doseMetric = new DoseMetricModel();
             //int numFx = GetNumberOfFractions(plan);
             doseMetric.StructureId = measureItem.ID;
-            if (measureItem.Type == TypeEnum.DoseAtAbsoluteVolume || measureItem.Type == TypeEnum.DoseAtRelativeVolume)
+            if (measureItem.Type == TypeEnum.DoseAtAbsoluteVolume || measureItem.Type == TypeEnum.DoseAtRelativeVolume
+                || measureItem.Type == TypeEnum.DoseMinimum || measureItem.Type == TypeEnum.DoseMaximum || measureItem.Type == TypeEnum.DoseMean)
             {
                 doseMetric.MetricType = DoseMetricTypeEnum.DoseAtVolume;
+                if(measureItem.Type == TypeEnum.DoseMinimum)
+                {
+                    doseMetric.MetricType = DoseMetricTypeEnum.MinDose;
+                }
+                if(measureItem.Type == TypeEnum.DoseMaximum)
+                {
+                    doseMetric.MetricType = DoseMetricTypeEnum.MaxDose;
+                }
+                if(measureItem.Type == TypeEnum.DoseMean)
+                {
+                    doseMetric.MetricType = DoseMetricTypeEnum.MeanDose;
+                }
                 if (!plan.StructureSet.Structures.Any(x => x.Id.Equals(measureItem.ID, StringComparison.OrdinalIgnoreCase)))
                 {
                     doseMetric.ResultText = "Structure Not Found";
@@ -997,7 +1019,7 @@ namespace ClinicalTemplateReader
                     return doseMetric;
                 }
                 doseMetric.InputUnit = measureItem.Type == TypeEnum.DoseAtAbsoluteVolume ? ResultUnitEnum.cc : ResultUnitEnum.PercentVolume;
-                doseMetric.InputValue = (double)measureItem.TypeSpecifier;
+                doseMetric.InputValue = measureItem.TypeSpecifier == null? (double?)null: (double)measureItem.TypeSpecifier;
                 //the value has been null in some instances
                 doseMetric.TargetValue = measureItem.Value != null ? (double)measureItem.Value : 0.0;
                 doseMetric.TargetUnit = measureItem.ReportDQPValueInAbsoluteUnits ? ResultUnitEnum.Gy : ResultUnitEnum.PercentDose;
@@ -1016,19 +1038,27 @@ namespace ClinicalTemplateReader
                 switch (measureItem.Modifier)
                 {
                     case MeasureItemModifierEnum.Is:
-                        doseMetric.MetricText = $"{doseMetric.StructureId} D{doseMetric.InputValue}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] equals {doseMetric.TargetValue} {ConvertUnitToString(doseMetric.TargetUnit)}";
+                        doseMetric.MetricText = $"{doseMetric.StructureId} D{(doseMetric.InputValue == null? doseMetric.MetricType.ToString():((double)doseMetric.InputValue).ToString())}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] equals {doseMetric.TargetValue} {ConvertUnitToString(doseMetric.TargetUnit)}";
                         doseMetric.Pass = measureItem.Value == null ? PassResultEnum.NA : doseMetric.ResultValue == doseMetric.TargetValue ? PassResultEnum.Pass : PassResultEnum.Fail;
                         break;
                     case MeasureItemModifierEnum.IsLessThan:
-                        doseMetric.MetricText = $"{doseMetric.StructureId} D{doseMetric.InputValue}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] is less than {doseMetric.TargetValue} {ConvertUnitToString(doseMetric.TargetUnit)}";
+                        doseMetric.MetricText = $"{doseMetric.StructureId} D{(doseMetric.InputValue == null ? doseMetric.MetricType.ToString() : ((double)doseMetric.InputValue).ToString())}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] is less than {doseMetric.TargetValue} {ConvertUnitToString(doseMetric.TargetUnit)}";
                         doseMetric.Pass = measureItem.Value == null ? PassResultEnum.NA : doseMetric.ResultValue < doseMetric.TargetValue ? PassResultEnum.Pass : PassResultEnum.Fail;
                         break;
                     case MeasureItemModifierEnum.IsMoreThan:
-                        doseMetric.MetricText = $"{doseMetric.StructureId} D{doseMetric.InputValue}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] is more than {doseMetric.TargetValue} {ConvertUnitToString(doseMetric.TargetUnit)}";
+                        doseMetric.MetricText = $"{doseMetric.StructureId} D{(doseMetric.InputValue == null ? doseMetric.MetricType.ToString() : ((double)doseMetric.InputValue).ToString())}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] is more than {doseMetric.TargetValue} {ConvertUnitToString(doseMetric.TargetUnit)}";
                         doseMetric.Pass = measureItem.Value == null ? PassResultEnum.NA : doseMetric.ResultValue > doseMetric.TargetValue ? PassResultEnum.Pass : PassResultEnum.Fail;
                         break;
+                    case MeasureItemModifierEnum.IsLessThanOrEqualTo:
+                        doseMetric.MetricText = $"{doseMetric.StructureId} D{(doseMetric.InputValue == null ? doseMetric.MetricType.ToString() : ((double)doseMetric.InputValue).ToString())}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] is less than or equal to {doseMetric.TargetValue} {ConvertUnitToString(doseMetric.TargetUnit)}";
+                        doseMetric.Pass = measureItem.Value == null ? PassResultEnum.NA : doseMetric.ResultValue <= doseMetric.TargetValue ? PassResultEnum.Pass : PassResultEnum.Fail;
+                        break;
+                    case MeasureItemModifierEnum.IsGreaterThanOrEqualTo:
+                        doseMetric.MetricText = $"{doseMetric.StructureId} D{(doseMetric.InputValue == null ? doseMetric.MetricType.ToString() : ((double)doseMetric.InputValue).ToString())}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] is greater than or equal to {doseMetric.TargetValue} {ConvertUnitToString(doseMetric.TargetUnit)}";
+                        doseMetric.Pass = measureItem.Value == null ? PassResultEnum.NA : doseMetric.ResultValue >= doseMetric.TargetValue ? PassResultEnum.Pass : PassResultEnum.Fail;
+                        break;
                 }
-                doseMetric.ResultText = $"{doseMetric.StructureId} D{doseMetric.InputValue}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] = {doseMetric.ResultValue:F2} {ConvertUnitToString(doseMetric.ResultUnit)}";
+                doseMetric.ResultText = $"{doseMetric.StructureId} D{(doseMetric.InputValue == null ? doseMetric.MetricType.ToString() : ((double)doseMetric.InputValue).ToString())}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] = {doseMetric.ResultValue:F2} {ConvertUnitToString(doseMetric.ResultUnit)}";
 
             }
             else if (measureItem.Type == TypeEnum.VolumeAtAbsoluteDose || measureItem.Type == TypeEnum.VolumeAtRelativeDose)

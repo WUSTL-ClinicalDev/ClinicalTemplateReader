@@ -9,6 +9,10 @@ namespace ClinicalTemplateReader
         [XmlEnum("1")]
         IsLessThan,//
         [XmlEnum("2")]
-        Is//
+        Is,//
+        [XmlEnum("3")]
+        IsGreaterThanOrEqualTo,//
+        [XmlEnum("4")]
+        IsLessThanOrEqualTo,
     }
 }

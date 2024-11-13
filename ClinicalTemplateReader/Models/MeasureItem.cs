@@ -13,6 +13,7 @@ namespace ClinicalTemplateReader
         public double? Value{ get; set; }
         [XmlElement(IsNullable = true)]
         public double? TypeSpecifier { get; set; }
+        //Dmin and Dmax units are handled by this property.
         public bool ReportDQPValueInAbsoluteUnits { get; set; }
         [XmlElement(IsNullable =true)]
         public int? Priority { get; set; }
