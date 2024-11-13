@@ -336,7 +336,7 @@ namespace ClinicalTemplateReader
         /// <param name="structureSet">StructureSet where plan should be created</param>
         /// <param name="planTemplate">Plan Template for plan creation</param>
         /// <param name="targetId">(optional) Id of target structure of (null to use template structure)</param>
-        /// <param name="machineId">(optional) Override the machine Id</param>
+        /// <param name="machineId">(optional) Override the machine Id (null to use template machine)</param>
         /// <returns>The newly generated Plan Setup</returns>
         public ExternalPlanSetup GeneratePlanFromTemplate(Course course, StructureSet structureSet, PlanTemplate planTemplate, string targetId, string machineId)
         {
@@ -362,7 +362,7 @@ namespace ClinicalTemplateReader
                     {
                         var beam = currentPlan.AddConformalArcBeam(
                             new ExternalBeamMachineParameters(
-                                String.IsNullOrEmpty(machineId) ? field.TreatmentUnit : machineId,
+                                String.IsNullOrEmpty(machineId)?field.TreatmentUnit:machineId,
                                 GetEnergyFromBeamTemplate(field.Energy),
                                 field.DoseRate,
                                 field.Technique,
@@ -400,7 +400,7 @@ namespace ClinicalTemplateReader
                     {
                         var beam = currentPlan.AddConformalArcBeam(
                             new ExternalBeamMachineParameters(
-                                String.IsNullOrEmpty(machineId) ? field.TreatmentUnit : machineId,
+                                String.IsNullOrEmpty(machineId)?field.TreatmentUnit:machineId,
                                 GetEnergyFromBeamTemplate(field.Energy),
                                 field.DoseRate,
                                 field.Technique,
@@ -436,7 +436,7 @@ namespace ClinicalTemplateReader
                         // If no fitting, a simple arc beam can be used (only 2 control points in arc beam).
                         var beam = currentPlan.AddArcBeam(
                             new ExternalBeamMachineParameters(
-                                String.IsNullOrEmpty(machineId) ? field.TreatmentUnit : machineId,
+                                String.IsNullOrEmpty(machineId)?field.TreatmentUnit:machineId,
                                 GetEnergyFromBeamTemplate(field.Energy),
                                 field.DoseRate,
                                 field.Technique,
@@ -517,7 +517,12 @@ namespace ClinicalTemplateReader
                     doseUnit == "cGy" ? DoseValue.DoseUnit.cGy : DoseValue.DoseUnit.Gy),
                 planTemplate.PrescribedPercentage.Value);
         }
-
+        /// <summary>
+        /// Gets plan quality metric results from clinical protocol. 
+        /// </summary>
+        /// <param name="plan">Plan to evaluate</param>
+        /// <param name="template">Clinical protocol with plan quality metrics</param>
+        /// <returns>List of dose metric model results.</returns>
         public List<DoseMetricModel> CompareProtocolDoseMetrics(PlanningItem plan, Protocol template)
         {
             List<DoseMetricModel> doseMetricModel = new List<DoseMetricModel>();
@@ -544,6 +549,157 @@ namespace ClinicalTemplateReader
             }
             return doseMetricModel;
 
+        }
+        /// <summary>
+        /// Performs DVH Estimation and optimization from rapidplan model.
+        /// </summary>
+        /// <param name="structureSummary">Structure Summary from DVHE model object</param>
+        /// <param name="plan">Plan to be optimized</param>
+        /// <param name="model">DVH Estimation Model</param>
+        /// <param name="targetMatches">Matches to target structures (Null for method to attempt to find target matches)</param>
+        /// <param name="structureMatches">Matches for DVHE structures (Null for method to attempt to find structure matches)</param>
+        /// <param name="intermediateDose">Applies to VMAT. Uses Intermediate dose in optimization.</param>
+        /// <returns></returns>
+        public string OptimizeFromRapidPlanModel(IEnumerable<DVHEstimationModelStructure> structureSummary, ExternalPlanSetup plan, DVHEstimationModelSummary model, List<Tuple<string, string, DoseValue>> targetMatches, List<Tuple<string, string>> structureMatches, bool intermediateDose)
+        {
+            if(model == null|| plan == null)
+            {
+                return "Missing mandatory parameters model, app, or plan";
+            }
+            List<string> optimizer_string = new List<string>();
+            List<string> not_found_string = new List<string>();
+            Dictionary<string, DoseValue> targetMatching = new Dictionary<string, DoseValue>();
+            Dictionary<string, string> structureMatching = new Dictionary<string, string>();
+            //check if targetmatching has been set by caller, if not find target matches within the code.
+            if (targetMatches != null)
+            {
+                foreach (var target in targetMatches)
+                {
+                    if (plan.StructureSet.Structures.Any(x => x.Id.ToLower() == target.Item1.ToLower()))
+                    {
+                        targetMatching.Add(plan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == target.Item1.ToLower()).Id, target.Item3);
+                        structureMatching.Add(plan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == target.Item1.ToLower()).Id, target.Item2);
+                    }
+                    else
+                    {
+                        not_found_string.Add(target.Item1);
+                    }
+                }
+            }
+            else
+            {
+                foreach (var structure in structureSummary.Where(x => x.StructureType == DVHEstimationStructureType.PTV))
+                {
+                    if (plan.StructureSet.Structures.Any(x => x.Id.ToLower() == structure.Id.ToLower()))
+                    {
+                        targetMatching.Add(plan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == structure.Id.ToLower()).Id, plan.TotalDose);
+                        Console.WriteLine($"Added {structure.Id}");
+                        structureMatching.Add(plan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == structure.Id.ToLower()).Id, structure.Id);
+                    }
+                    else if (plan.StructureSet.Structures.Any(x => x.StructureCode == structure.StructureCodes.FirstOrDefault()))
+                    {
+                        targetMatching.Add(plan.StructureSet.Structures.FirstOrDefault(x => x.StructureCode == structure.StructureCodes.FirstOrDefault()).Id, plan.TotalDose);
+                        Console.WriteLine($"Added {structure.Id} by code");
+
+                        structureMatching.Add(plan.StructureSet.Structures.FirstOrDefault(x => x.StructureCode == structure.StructureCodes.FirstOrDefault()).Id, structure.Id);
+                    }
+                    else
+                    {
+                        not_found_string.Add(structure.Id);
+                    }
+                }
+            }
+            if (structureMatches != null)
+            {
+                foreach(var structure in structureMatches)
+                {
+                    if(plan.StructureSet.Structures.Any(x=>x.Id.ToLower() == structure.Item1.ToLower()))
+                    {
+                        structureMatching.Add(plan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == structure.Item1.ToLower()).Id, structure.Item2);
+                        Console.WriteLine($"Added {structure.Item2}");
+
+                    }
+                    else
+                    {
+                        not_found_string.Add(structure.Item1);
+                    }
+                }
+            }
+            else
+            {
+                foreach(var structure in structureSummary.Where(x=>x.StructureType != DVHEstimationStructureType.PTV))
+                {
+                    if (plan.StructureSet.Structures.Any(x => x.Id.ToLower() == structure.Id.ToLower()))
+                    {
+                        if (!structureMatching.Keys.Contains(plan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == structure.Id.ToLower()).Id))
+                        {
+                            structureMatching.Add(plan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == structure.Id.ToLower()).Id, structure.Id);
+                            Console.WriteLine($"Added {structure.Id}");
+
+                        }
+                    }
+                    else if (plan.StructureSet.Structures.Any(x => x.StructureCode == structure.StructureCodes.FirstOrDefault()))
+                    {
+                        if (!structureMatching.Keys.Contains(plan.StructureSet.Structures.FirstOrDefault(x => x.StructureCode == structure.StructureCodes.FirstOrDefault()).Id))
+                        {
+                            structureMatching.Add(plan.StructureSet.Structures.FirstOrDefault(x => x.StructureCode == structure.StructureCodes.FirstOrDefault()).Id, structure.Id);
+                            Console.WriteLine($"Added {structure.Id} by code");
+
+                        }
+                    }
+                    else
+                    {
+                        not_found_string.Add(structure.Id);
+                    }
+                }
+            }
+            if (structureMatching.Count() > 0)
+            {
+                try
+                {
+                    var dvhe_result = plan.CalculateDVHEstimates(model.Name, targetMatching, structureMatching);
+                    if (dvhe_result.Success)
+                    {
+                        if(plan.Beams.All(x=>x.Technique.Id.Contains("ARC")))
+                        {
+                            var opt_result = plan.OptimizeVMAT(new OptimizationOptionsVMAT(intermediateDose?OptimizationIntermediateDoseOption.UseIntermediateDose: OptimizationIntermediateDoseOption.NoIntermediateDose,
+                                plan.Beams.FirstOrDefault().MLC.Id));
+                            if (opt_result.Success)
+                            {
+                                return $"Structures Included in Optimization\n: {String.Join("\n\t", structureMatching.Select(x => new { s = $"{x.Key}:{x.Value}" }).Select(x => x.s))}\nTargetMatching: {String.Join("\n\t", targetMatching.Select(x => new { s = $"{x.Key}:{x.Value}" }).Select(x => x.s))}\nStructure not found on Structure Set for Optimiztion: {String.Join(", ", not_found_string)}";
+                            }
+                            else
+                            {
+                                return "Issue with optimization";
+                            }
+                        }
+                        else
+                        {
+                            var opt_result = plan.Optimize();
+                            if (opt_result.Success)
+                            {
+                                return $"Structures Included in Optimization\n: {String.Join("\n\t", structureMatching.Select(x => new { s = $"{x.Key}:{x.Value}" }).Select(x => x.s))}\nTargetMatching: {String.Join("\n\t", targetMatching.Select(x => new { s = $"{x.Key}:{x.Value}" }).Select(x => x.s))}\nStructure not found on Structure Set for Optimiztion: {String.Join(", ", not_found_string)}";
+                            }
+                            else
+                            {
+                                return "Issue with IMRT optimization";
+                            }
+                        }
+                    }
+                    else
+                    {
+                        return "Issue happened with DVHE";
+                    }
+                }
+                catch(Exception ex)
+                {
+                    return ex.Message;
+                }
+            }
+            else
+            {
+                return "No structures could be matched";
+            }
         }
         #endregion
 
