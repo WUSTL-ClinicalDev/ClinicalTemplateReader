@@ -636,7 +636,8 @@ namespace ClinicalTemplateReader
                     var dvhe_result = plan.CalculateDVHEstimates(model.Name, targetMatching, structureMatching);
                     if (dvhe_result.Success)
                     {
-                        if(plan.Beams.All(x=>x.Technique.Id.Contains("ARC")))
+                        plan.OptimizationSetup.AddAutomaticNormalTissueObjective(100);
+                        if (plan.Beams.All(x=>x.Technique.Id.Contains("ARC")))
                         {
                             var opt_result = plan.OptimizeVMAT(new OptimizationOptionsVMAT(intermediateDose?OptimizationIntermediateDoseOption.UseIntermediateDose: OptimizationIntermediateDoseOption.NoIntermediateDose,
                                 plan.Beams.FirstOrDefault().MLC.Id));
