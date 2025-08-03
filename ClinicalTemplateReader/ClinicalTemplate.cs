@@ -945,6 +945,8 @@ namespace ClinicalTemplateReader
             var doseMetric = new DoseMetricModel();
             //int numFx = GetNumberOfFractions(plan);
             doseMetric.StructureId = measureItem.ID;
+            var planDoseUnit = GetPlanDoseUnit(plan);
+
             if (measureItem.Type == TypeEnum.DoseAtAbsoluteVolume || measureItem.Type == TypeEnum.DoseAtRelativeVolume)
             {
                 doseMetric.MetricType = DoseMetricTypeEnum.DoseAtVolume;
@@ -959,7 +961,6 @@ namespace ClinicalTemplateReader
                 //the value has been null in some instances
                 doseMetric.TargetValue = measureItem.Value != null ? (double)measureItem.Value : 0.0;
                 doseMetric.TargetUnit = measureItem.ReportDQPValueInAbsoluteUnits ? ResultUnitEnum.Gy : ResultUnitEnum.PercentDose;
-                var planDoseUnit = GetPlanDoseUnit(plan);
                 //convert target unit to system unit.
                 if (doseMetric.TargetUnit != ResultUnitEnum.PercentDose && doseMetric.TargetUnit.ToString() != planDoseUnit.ToString())
                 {
@@ -1001,8 +1002,8 @@ namespace ClinicalTemplateReader
                 doseMetric.InputUnit = measureItem.Type == TypeEnum.VolumeAtAbsoluteDose ? ResultUnitEnum.Gy : ResultUnitEnum.PercentDose;
                 doseMetric.InputValue = (double)measureItem.TypeSpecifier;
                 doseMetric.TargetUnit = measureItem.ReportDQPValueInAbsoluteUnits ? ResultUnitEnum.cc : ResultUnitEnum.PercentVolume;
-                doseMetric.TargetValue = measureItem.Value != null ? (double)measureItem.Value : 0.0;
-                var planDoseUnit = GetPlanDoseUnit(plan);
+                //convert mm^3 to cm^3 for volume at dose (absolute)
+                doseMetric.TargetValue = measureItem.Value != null ? (double)measureItem.Value / 100.0 : 0.0;
                 //convert target unit to system unit.
                 if (doseMetric.InputUnit != ResultUnitEnum.PercentDose && doseMetric.InputUnit.ToString() != planDoseUnit.ToString())
                 {
@@ -1028,6 +1029,54 @@ namespace ClinicalTemplateReader
                         break;
                 }
                 doseMetric.ResultText = $"{doseMetric.StructureId} V{doseMetric.InputValue}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] = {doseMetric.ResultValue:F2} {ConvertUnitToString(doseMetric.ResultUnit)}";
+
+            }
+            else if (measureItem.Type == TypeEnum.MinDose || measureItem.Type == TypeEnum.MaxDose || measureItem.Type == TypeEnum.MeanDose)
+            {
+                if (!plan.StructureSet.Structures.Any(x => x.Id == measureItem.ID))
+                {
+                    doseMetric.ResultText = "Structure Not Found";
+                    doseMetric.Pass = PassResultEnum.NA;
+                    return doseMetric;
+                }
+                doseMetric.TargetUnit = measureItem.ReportDQPValueInAbsoluteUnits ? ResultUnitEnum.Gy : ResultUnitEnum.PercentDose;
+                doseMetric.TargetValue = measureItem.Value != null ? (double)measureItem.Value : 0.0;
+                if (doseMetric.TargetUnit != ResultUnitEnum.PercentDose && doseMetric.TargetUnit.ToString() != planDoseUnit.ToString())
+                {
+                    doseMetric.TargetUnit = ResultUnitEnum.cGy;
+                    doseMetric.TargetValue = (double)measureItem.Value * 100.0;
+                }
+                doseMetric.ResultUnit = doseMetric.TargetUnit;
+                switch (measureItem.Type)
+                {
+                    case TypeEnum.MinDose:
+                        doseMetric.MetricType = DoseMetricTypeEnum.MinDose;
+                        break;
+                    case TypeEnum.MaxDose:
+                        doseMetric.MetricType = DoseMetricTypeEnum.MaxDose;
+                        break;
+                    case TypeEnum.MeanDose:
+                        doseMetric.MetricType = DoseMetricTypeEnum.MeanDose;
+                        break;
+                }
+                double resultValue = GetDoseResultFromItem(doseMetric, plan);
+                //Compare to target expectation.
+                switch (measureItem.Modifier)
+                {
+                    case MeasureItemModifierEnum.Is:
+                        doseMetric.MetricText = $"{doseMetric.StructureId} {doseMetric.MetricType}[{ConvertUnitToString(doseMetric.ResultUnit)}] equals {doseMetric.TargetValue} {ConvertUnitToString(doseMetric.TargetUnit)}";
+                        doseMetric.Pass = measureItem.Value == null ? PassResultEnum.NA : doseMetric.ResultValue == doseMetric.TargetValue ? PassResultEnum.Pass : PassResultEnum.Fail;
+                        break;
+                    case MeasureItemModifierEnum.IsLessThan:
+                        doseMetric.MetricText = $"{doseMetric.StructureId} {doseMetric.MetricType}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] is less than {doseMetric.TargetValue} {ConvertUnitToString(doseMetric.TargetUnit)}";
+                        doseMetric.Pass = measureItem.Value == null ? PassResultEnum.NA : doseMetric.ResultValue < doseMetric.TargetValue ? PassResultEnum.Pass : PassResultEnum.Fail;
+                        break;
+                    case MeasureItemModifierEnum.IsMoreThan:
+                        doseMetric.MetricText = $"{doseMetric.StructureId} {doseMetric.MetricType}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] is more than {doseMetric.TargetValue} {ConvertUnitToString(doseMetric.TargetUnit)}";
+                        doseMetric.Pass = measureItem.Value == null ? PassResultEnum.NA : doseMetric.ResultValue > doseMetric.TargetValue ? PassResultEnum.Pass : PassResultEnum.Fail;
+                        break;
+                }
+                doseMetric.ResultText = $"{doseMetric.StructureId} {doseMetric.MetricType}{ConvertUnitToString(doseMetric.InputUnit)}[{ConvertUnitToString(doseMetric.ResultUnit)}] = {doseMetric.ResultValue:F2} {ConvertUnitToString(doseMetric.ResultUnit)}";
 
             }
             else

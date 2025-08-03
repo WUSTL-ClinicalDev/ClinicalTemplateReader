@@ -17,6 +17,12 @@ namespace ClinicalTemplateReader
         DoseAtRelativeVolume,//4
         [XmlEnum("5")]
         DoseAtAbsoluteVolume,//5
+        [XmlEnum("6")]
+        MinDose,//6
+        [XmlEnum("7")]
+        MaxDose,//7
+        [XmlEnum("8")]
+        MeanDose,//8
 
     }
 }
