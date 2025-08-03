@@ -1003,7 +1003,11 @@ namespace ClinicalTemplateReader
                 doseMetric.InputValue = (double)measureItem.TypeSpecifier;
                 doseMetric.TargetUnit = measureItem.ReportDQPValueInAbsoluteUnits ? ResultUnitEnum.cc : ResultUnitEnum.PercentVolume;
                 //convert mm^3 to cm^3 for volume at dose (absolute)
-                doseMetric.TargetValue = measureItem.Value != null ? (double)measureItem.Value / 100.0 : 0.0;
+                doseMetric.TargetValue = measureItem.Value != null  ? (double)measureItem.Value  : 0.0;
+                if (measureItem.ReportDQPValueInAbsoluteUnits)
+                {
+                    doseMetric.TargetValue = doseMetric.TargetValue / 1000.0; //convert mm^3 to cm^3
+                }
                 //convert target unit to system unit.
                 if (doseMetric.InputUnit != ResultUnitEnum.PercentDose && doseMetric.InputUnit.ToString() != planDoseUnit.ToString())
                 {
